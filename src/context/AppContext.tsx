@@ -64,6 +64,7 @@ interface AppContextType {
 
   // User & Auth
   currentUser: UserAccount | null;
+  userProfile: UserAccount | null;
   currentRole: Role;
   setCurrentRole: (role: Role) => void;
   isAuthenticated: boolean;
@@ -76,6 +77,7 @@ interface AppContextType {
   loginConsumer: (username: string, password?: string) => { success: boolean; message?: string };
   registerUser: (userData: Omit<UserAccount, 'id' | 'createdAt'>) => Promise<{ success: boolean; message?: string }>;
   loginWithGooglePopup: (userType: UserType, storeNameIfSeller?: string) => Promise<{ success: boolean; message?: string }>;
+  switchUser: (employeeId: string) => void;
   logout: () => void;
 
   // Pegawai (Employee)
@@ -193,7 +195,23 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const savedUser = localStorage.getItem('eyehub_current_user');
     if (savedUser) {
       try {
-        return JSON.parse(savedUser);
+        const parsed = JSON.parse(savedUser);
+        if (parsed && typeof parsed === 'object') {
+          const resolvedName = parsed.name || parsed.fullName || parsed.username || 'Pengguna';
+          return {
+            ...parsed,
+            id: parsed.id || 'usr-' + Date.now().toString(36),
+            uid: parsed.uid || parsed.id,
+            fullName: parsed.fullName || resolvedName,
+            name: resolvedName,
+            username: parsed.username || resolvedName.toLowerCase().replace(/\s+/g, '_'),
+            phone: parsed.phone || '-',
+            roles: Array.isArray(parsed.roles) && parsed.roles.length > 0
+              ? parsed.roles
+              : (parsed.role ? [parsed.role] : ['owner'])
+          };
+        }
+        return null;
       } catch {
         return null;
       }
@@ -426,9 +444,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (password && existingUser.password && existingUser.password !== password) {
         return { success: false, message: 'Password salah untuk akun seller ini' };
       }
-      setCurrentUser(existingUser);
-      if (existingUser.role) setCurrentRole(existingUser.role);
-      showToast(`Selamat datang, ${existingUser.fullName || existingUser.username}!`, 'success');
+      const normalizedUser: UserAccount = {
+        ...existingUser,
+        uid: existingUser.uid || existingUser.id,
+        fullName: existingUser.fullName || existingUser.username,
+        name: existingUser.name || existingUser.fullName || existingUser.username,
+        roles: existingUser.roles && existingUser.roles.length > 0
+          ? existingUser.roles
+          : (existingUser.role ? [existingUser.role] : ['owner'])
+      };
+      setCurrentUser(normalizedUser);
+      if (normalizedUser.role) setCurrentRole(normalizedUser.role);
+      showToast(`Selamat datang, ${normalizedUser.fullName || normalizedUser.username}!`, 'success');
       return { success: true };
     }
 
@@ -438,13 +465,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       }
       const staffUser: UserAccount = {
         id: existingEmployee.id,
+        uid: existingEmployee.id,
         username: existingEmployee.username,
         fullName: existingEmployee.name,
+        name: existingEmployee.name,
         userType: 'seller',
         phone: existingEmployee.phone,
         storeId: existingEmployee.storeId,
         storeName: store.name,
         role: existingEmployee.roles[0] || 'pelayan',
+        roles: existingEmployee.roles,
         createdAt: new Date().toISOString()
       };
       setCurrentUser(staffUser);
@@ -462,16 +492,20 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       phone: '0812' + Math.floor(10000000 + Math.random() * 90000000)
     };
 
+    const newSellerId = 'seller-' + Date.now().toString(36);
     const newSellerUser: UserAccount = {
-      id: 'seller-' + Date.now().toString(36),
+      id: newSellerId,
+      uid: newSellerId,
       username: username.trim(),
       password: password || '123456',
       fullName: username.trim(),
+      name: username.trim(),
       userType: 'seller',
       phone: newStoreObj.phone,
       storeId: newStoreId,
       storeName: newStoreObj.name,
       role: 'owner',
+      roles: ['owner'],
       createdAt: new Date().toISOString()
     };
 
@@ -499,19 +533,31 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (password && existing.password && existing.password !== password) {
         return { success: false, message: 'Password salah' };
       }
-      setCurrentUser(existing);
-      showToast(`Selamat datang kembali di Marketplace, ${existing.fullName || existing.username}!`, 'success');
+      const normalizedConsumer: UserAccount = {
+        ...existing,
+        uid: existing.uid || existing.id,
+        fullName: existing.fullName || existing.username,
+        name: existing.name || existing.fullName || existing.username,
+        roles: existing.roles || ['consumer' as any]
+      };
+      setCurrentUser(normalizedConsumer);
+      showToast(`Selamat datang kembali di Marketplace, ${normalizedConsumer.fullName || normalizedConsumer.username}!`, 'success');
       return { success: true };
     }
 
     // Create consumer user on the fly if brand new
+    const newConsumerId = 'cust-' + Date.now().toString(36);
     const newConsumer: UserAccount = {
-      id: 'cust-' + Date.now().toString(36),
+      id: newConsumerId,
+      uid: newConsumerId,
       username: username.trim(),
       password: password || '123456',
       fullName: username.trim(),
+      name: username.trim(),
       userType: 'consumer',
       phone: '08' + Math.floor(1000000000 + Math.random() * 900000000),
+      role: 'consumer' as any,
+      roles: ['consumer' as any],
       createdAt: new Date().toISOString()
     };
 
@@ -530,9 +576,14 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const registerUser = async (userData: Omit<UserAccount, 'id' | 'createdAt'>) => {
     const id = (userData.userType === 'seller' ? 'seller-' : 'cust-') + Date.now().toString(36);
+    const resolvedName = userData.name || userData.fullName || userData.username;
     const fullUser: UserAccount = {
       ...userData,
       id,
+      uid: id,
+      fullName: userData.fullName || resolvedName,
+      name: resolvedName,
+      roles: userData.roles || (userData.role ? [userData.role] : (userData.userType === 'consumer' ? ['consumer' as any] : ['owner'])),
       createdAt: new Date().toISOString()
     };
 
@@ -615,6 +666,29 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     setSellerViewConsumerMode(false);
     localStorage.removeItem('eyehub_current_user');
     showToast('Sesi telah keluar', 'info');
+  };
+
+  const switchUser = (employeeId: string) => {
+    const emp = employees.find((e) => e.id === employeeId);
+    if (emp) {
+      const staffUser: UserAccount = {
+        id: emp.id,
+        uid: emp.id,
+        username: emp.username,
+        fullName: emp.name,
+        name: emp.name,
+        userType: 'seller',
+        phone: emp.phone,
+        storeId: emp.storeId,
+        storeName: store.name,
+        role: emp.roles[0] || 'pelayan',
+        roles: emp.roles,
+        createdAt: new Date().toISOString()
+      };
+      setCurrentUser(staffUser);
+      setCurrentRole(emp.roles[0] || 'pelayan');
+      showToast(`Beralih akun ke: ${emp.name}`, 'info');
+    }
   };
 
   // --- Pegawai Handlers ---
@@ -1157,6 +1231,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createStore,
 
         currentUser,
+        userProfile: currentUser,
         currentRole,
         setCurrentRole,
         isAuthenticated,
@@ -1169,6 +1244,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loginConsumer,
         registerUser,
         loginWithGooglePopup,
+        switchUser,
         logout,
 
         employees,

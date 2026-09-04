@@ -12,15 +12,19 @@ export type UserType = 'seller' | 'consumer';
 
 export interface UserAccount {
   id: string;
+  uid?: string;
   username: string;
   password?: string;
   fullName: string;
+  name?: string;
   userType: UserType;
   phone: string;
   email?: string;
   storeId?: string;
   storeName?: string;
   role?: Role;
+  roles?: Role[];
+  address?: string;
   createdAt: string;
 }
 

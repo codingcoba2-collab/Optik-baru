@@ -50,7 +50,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  const isConsumer = userProfile?.role === 'consumer';
+  const isConsumer = userProfile?.role === 'consumer' || userProfile?.userType === 'consumer';
 
   interface NavigationTabItem {
     id: string;

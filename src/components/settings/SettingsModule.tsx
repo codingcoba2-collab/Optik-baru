@@ -297,17 +297,17 @@ export const SettingsModule: React.FC = () => {
           <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-600 dark:text-sky-400 flex items-center justify-center font-bold text-sm">
-                {currentUser.name.charAt(0)}
+                {((currentUser?.name || currentUser?.fullName || currentUser?.username || 'U').charAt(0) || 'U').toUpperCase()}
               </div>
               <div>
                 <div className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <span>{currentUser.name}</span>
+                  <span>{currentUser?.name || currentUser?.fullName || currentUser?.username || 'Pengguna'}</span>
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 uppercase">
                     {currentRole}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                  No. HP: {currentUser.phone} • Cabang: {store.name}
+                  No. HP: {currentUser?.phone || '-'} • Cabang: {store.name}
                 </div>
               </div>
             </div>
