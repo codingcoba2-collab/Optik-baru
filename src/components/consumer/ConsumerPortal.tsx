@@ -425,24 +425,8 @@ export const ConsumerPortal: React.FC = () => {
                 ))}
               </div>
 
-              {/* Store & Sort Dropdowns */}
+              {/* Sort Dropdown */}
               <div className="flex items-center gap-2 shrink-0">
-                {/* Store Filter */}
-                <div className="relative">
-                  <select
-                    value={selectedStoreId}
-                    onChange={(e) => setSelectedStoreId(e.target.value)}
-                    className="text-xs font-semibold py-1.5 pl-3 pr-8 rounded-xl bg-slate-100 dark:bg-slate-800 border-none text-slate-700 dark:text-slate-300 focus:ring-2 focus:ring-sky-500 cursor-pointer"
-                  >
-                    <option value="all">Semua Toko Optik</option>
-                    {allStores.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
                 {/* Sort Filter */}
                 <div className="relative">
                   <select

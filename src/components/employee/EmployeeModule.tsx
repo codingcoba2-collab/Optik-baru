@@ -28,7 +28,9 @@ const ALL_ROLES: { key: Role; label: string; desc: string; color: string }[] = [
 ];
 
 export const EmployeeModule: React.FC = () => {
-  const { employees, addEmployee, updateEmployee, deleteEmployee, store, showToast } = useApp();
+  const { employees, addEmployee, updateEmployee, deleteEmployee, store, showToast, currentUser, currentRole } = useApp();
+
+  const isOwner = currentRole === 'owner' || currentUser?.role === 'owner' || (Array.isArray(currentUser?.roles) && currentUser.roles.includes('owner'));
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -87,6 +89,10 @@ export const EmployeeModule: React.FC = () => {
   };
 
   const handleOpenAddModal = () => {
+    if (!isOwner) {
+      showToast('Pegawai tidak dapat menambah pegawai. Akses ini khusus Owner.', 'error');
+      return;
+    }
     resetForm();
     setIsModalOpen(true);
   };
@@ -134,6 +140,10 @@ export const EmployeeModule: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!editingId && !isOwner) {
+      showToast('Pegawai tidak dapat menambah pegawai. Akses ini khusus Owner.', 'error');
+      return;
+    }
     if (!name.trim() || !username.trim()) {
       showToast('Nama dan Username wajib diisi', 'error');
       return;
@@ -222,13 +232,15 @@ export const EmployeeModule: React.FC = () => {
           </p>
         </div>
 
-        <button
-          onClick={handleOpenAddModal}
-          className="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/30 flex items-center gap-2 transition-all shrink-0 cursor-pointer"
-        >
-          <UserPlus className="w-4 h-4" />
-          <span>+ Tambah Pegawai Baru</span>
-        </button>
+        {isOwner && (
+          <button
+            onClick={handleOpenAddModal}
+            className="py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs shadow-lg shadow-sky-600/30 flex items-center gap-2 transition-all shrink-0 cursor-pointer"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>+ Tambah Pegawai Baru</span>
+          </button>
+        )}
       </div>
 
       {/* Quick Stats */}
@@ -267,13 +279,15 @@ export const EmployeeModule: React.FC = () => {
           <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
             Data dimulai dari awal (kosong). Klik tombol di bawah untuk mendaftarkan pegawai optik beserta peran dan sistem gajinya.
           </p>
-          <button
-            onClick={handleOpenAddModal}
-            className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs inline-flex items-center gap-2 cursor-pointer"
-          >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>Tambah Pegawai Pertama</span>
-          </button>
+          {isOwner && (
+            <button
+              onClick={handleOpenAddModal}
+              className="py-2 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs inline-flex items-center gap-2 cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" />
+              <span>Tambah Pegawai Pertama</span>
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

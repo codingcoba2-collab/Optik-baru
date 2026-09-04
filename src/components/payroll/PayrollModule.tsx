@@ -13,7 +13,15 @@ import {
 } from 'lucide-react';
 
 export const PayrollModule: React.FC = () => {
-  const { employees, updateEmployee, salesOrders, fasetOrders, attendance, store } = useApp();
+  const { employees, updateEmployee, salesOrders, fasetOrders, attendance, store, currentUser, currentRole } = useApp();
+
+  const isOwner = currentRole === 'owner' || currentUser?.role === 'owner' || (Array.isArray(currentUser?.roles) && currentUser.roles.includes('owner'));
+
+  // Restrict: Employees can only view their own salary
+  const targetEmployee = employees.find((e) => e.id === currentUser?.id || e.username === currentUser?.username);
+  const visibleEmployees = isOwner 
+    ? employees 
+    : (targetEmployee ? [targetEmployee] : (employees[0] ? [employees[0]] : []));
 
   const [selectedMonth, setSelectedMonth] = useState('2026-09');
   const [selectedEmployeeForSlip, setSelectedEmployeeForSlip] = useState<{
@@ -25,13 +33,14 @@ export const PayrollModule: React.FC = () => {
   const [schemeForm, setSchemeForm] = useState<SalaryScheme | null>(null);
 
   const handleOpenConfig = (emp: Employee) => {
+    if (!isOwner) return;
     setEditingIncentiveEmp(emp);
     setSchemeForm({ ...emp.salaryScheme });
   };
 
   const handleSaveConfig = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingIncentiveEmp || !schemeForm) return;
+    if (!isOwner || !editingIncentiveEmp || !schemeForm) return;
 
     updateEmployee(editingIncentiveEmp.id, {
       ...editingIncentiveEmp,
@@ -43,7 +52,7 @@ export const PayrollModule: React.FC = () => {
   const totalStoreOmzet = salesOrders.reduce((sum, o) => sum + o.grossAmount, 0);
   const storeNetProfit = totalStoreOmzet * 0.35; // approx 35% net margin
 
-  const allCalculations = employees.map((emp) => {
+  const allCalculations = visibleEmployees.map((emp) => {
     const payroll = calculateEmployeePayroll(
       emp,
       attendance,
@@ -68,13 +77,15 @@ export const PayrollModule: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 text-xs font-semibold text-amber-500 mb-1">
             <DollarSign className="w-4 h-4" />
-            Payroll, Tiered Incentives & Slip Gaji Karyawan
+            {isOwner ? 'Payroll, Tiered Incentives & Slip Gaji Karyawan' : 'Rincian Gaji & Insentif Karyawan'}
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white">
-            Penggajian & Komisi Karyawan Toko Optik
+            {isOwner ? 'Penggajian & Komisi Karyawan Toko Optik' : `Gaji & Komisi: ${targetEmployee?.name || currentUser?.name || 'Saya'}`}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400">
-            Perhitungan otomatis komisi Host Live, Admin Marketplace, dan insentif per-pasang lensa Teknisi Faset
+            {isOwner 
+              ? 'Perhitungan otomatis komisi Host Live, Pelayan Toko, dan insentif per-pasang lensa Teknisi Faset'
+              : 'Rincian slip gaji, insentif live streaming, potongan presensi, dan bonus kinerja Anda bulan ini'}
           </p>
         </div>
 
@@ -93,23 +104,33 @@ export const PayrollModule: React.FC = () => {
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Anggaran Payroll Bulan Ini</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            {isOwner ? 'Total Anggaran Payroll Bulan Ini' : 'Gaji Bersih Diterima (Take Home)'}
+          </div>
           <div className="text-lg sm:text-xl font-black text-slate-900 dark:text-white">
             {formatRupiah(totalPayrollBudget)}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">{employees.length} Karyawan Aktif</div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            {isOwner ? `${employees.length} Karyawan Aktif` : 'Siap ditransfer / dibayarkan'}
+          </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Total Insentif & Komisi Kinerja</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            {isOwner ? 'Total Insentif & Komisi Kinerja' : 'Total Komisi & Insentif Saya'}
+          </div>
           <div className="text-lg sm:text-xl font-black text-amber-500">
             {formatRupiah(totalCommissions)}
           </div>
-          <div className="text-[11px] text-slate-500 mt-1">Berdasarkan omzet live & output faset</div>
+          <div className="text-[11px] text-slate-500 mt-1">
+            {isOwner ? 'Berdasarkan omzet live & output faset' : 'Komisi penjualan live & per-pasang lab'}
+          </div>
         </div>
 
         <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Tingkat Kehadiran Keseluruhan</div>
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">
+            {isOwner ? 'Tingkat Kehadiran Keseluruhan' : 'Kehadiran Kerja Saya'}
+          </div>
           <div className="text-lg sm:text-xl font-black text-emerald-500">
             {allCalculations.reduce((sum, item) => sum + item.payroll.daysPresent, 0)} Hari Kerja
           </div>
@@ -186,13 +207,15 @@ export const PayrollModule: React.FC = () => {
                         >
                           <Printer className="w-4 h-4" />
                         </button>
-                        <button
-                          onClick={() => handleOpenConfig(emp)}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer"
-                          title="Atur Skema Insentif"
-                        >
-                          <Sliders className="w-4 h-4" />
-                        </button>
+                        {isOwner && (
+                          <button
+                            onClick={() => handleOpenConfig(emp)}
+                            className="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-slate-800 cursor-pointer"
+                            title="Atur Skema Insentif"
+                          >
+                            <Sliders className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

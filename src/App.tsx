@@ -46,6 +46,7 @@ import {
 const AppContent: React.FC = () => {
   const {
     currentRole,
+    currentUser,
     store,
     isPwaModalOpen,
     setIsPwaModalOpen,
@@ -55,8 +56,11 @@ const AppContent: React.FC = () => {
     setIsDark
   } = useApp();
   const isConsumer = userProfile?.role === 'consumer' || userProfile?.userType === 'consumer';
+  const isOwner = currentRole === 'owner' || currentUser?.role === 'owner' || (Array.isArray(currentUser?.roles) && currentUser.roles.includes('owner'));
+  const isEmployee = !isConsumer && !isOwner;
+
   const [activeTab, setActiveTab] = useState<string>(
-    isConsumer ? 'marketplace' : 'dashboard'
+    isConsumer ? 'marketplace' : (isEmployee ? 'sales' : 'dashboard')
   );
   // State for toggling login view on initial unauthenticated screen (default true for immediate login/register)
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
@@ -65,8 +69,10 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     if (isConsumer && activeTab === 'dashboard') {
       setActiveTab('marketplace');
+    } else if (isEmployee && activeTab !== 'sales' && activeTab !== 'payroll') {
+      setActiveTab('sales');
     }
-  }, [isConsumer]);
+  }, [isConsumer, isEmployee, activeTab]);
 
   // If user is not logged in: Initial screen is Eye Health & Lens Education with Top Login Menu
   if (!isAuthenticated) {
@@ -205,7 +211,12 @@ const AppContent: React.FC = () => {
     { id: 'settings', label: 'Pengaturan & Tema', icon: Settings },
   ];
 
-  const navItems = isConsumer ? consumerNavItems : sellerNavItems;
+  const employeeNavItems: NavigationTabItem[] = [
+    { id: 'sales', label: 'Kasir Penjualan', icon: ShoppingCart },
+    { id: 'payroll', label: 'Gaji Saya', icon: DollarSign },
+  ];
+
+  const navItems = isConsumer ? consumerNavItems : (isEmployee ? employeeNavItems : sellerNavItems);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
@@ -252,11 +263,13 @@ const AppContent: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
             <span className="font-bold text-sky-600 dark:text-sky-400">
-              {isConsumer ? '👤 Akun Konsumen' : `🏪 Toko Optik: ${store?.name || 'Optik'}`}
+              {isConsumer ? '👤 Akun Konsumen' : (isEmployee ? `👤 Staf Pegawai: ${currentUser?.name || 'Kasir'}` : `🏪 Toko Optik: ${store?.name || 'Optik'}`)}
             </span>
             <span>•</span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
-              Sistem operasional toko optik lengkap: Kelola Pesanan Masuk, Pengantaran Kurir Toko, Lab Faset, Stok Multi-Lensa & Keuangan
+              {isEmployee 
+                ? 'Akses operasional staf: Kasir Penjualan & Slip Gaji Karyawan' 
+                : 'Sistem operasional toko optik lengkap: Kelola Pesanan Masuk, Pengantaran Kurir Toko, Lab Faset, Stok Multi-Lensa & Keuangan'}
             </span>
           </div>
 
@@ -273,22 +286,30 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Modules */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
-        <ErrorBoundary fallbackTitle="Terjadi Kendala Memuat Modul" onReset={() => setActiveTab(isConsumer ? 'marketplace' : 'dashboard')}>
-          {activeTab === 'dashboard' && <DashboardModule onNavigate={setActiveTab} />}
-          {activeTab === 'orders' && <SellerOrderManagementModule />}
-          {activeTab === 'education' && <EducationModule onOpenLogin={() => {}} />}
-          {activeTab === 'marketplace' && <MarketplaceModule />}
-          {activeTab === 'inventory' && <InventoryModule />}
-          {activeTab === 'faset' && <FasetLabModule />}
-          {activeTab === 'employee' && <EmployeeModule />}
-          {activeTab === 'ads' && <AdsDiscountModule />}
-          {activeTab === 'sales' && <SalesModule />}
-          {activeTab === 'accounting' && <AccountingModule />}
-          {activeTab === 'attendance' && <AttendanceModule />}
-          {activeTab === 'payroll' && <PayrollModule />}
-          {activeTab === 'ai' && <AiEvaluationModule />}
-          {activeTab === 'update' && <UpdateModule />}
-          {activeTab === 'settings' && <SettingsModule />}
+        <ErrorBoundary fallbackTitle="Terjadi Kendala Memuat Modul" onReset={() => setActiveTab(isConsumer ? 'marketplace' : (isEmployee ? 'sales' : 'dashboard'))}>
+          {isEmployee ? (
+            <>
+              {activeTab === 'payroll' ? <PayrollModule /> : <SalesModule />}
+            </>
+          ) : (
+            <>
+              {activeTab === 'dashboard' && <DashboardModule onNavigate={setActiveTab} />}
+              {activeTab === 'orders' && <SellerOrderManagementModule />}
+              {activeTab === 'education' && <EducationModule onOpenLogin={() => {}} />}
+              {activeTab === 'marketplace' && <MarketplaceModule />}
+              {activeTab === 'inventory' && <InventoryModule />}
+              {activeTab === 'faset' && <FasetLabModule />}
+              {activeTab === 'employee' && <EmployeeModule />}
+              {activeTab === 'ads' && <AdsDiscountModule />}
+              {activeTab === 'sales' && <SalesModule />}
+              {activeTab === 'accounting' && <AccountingModule />}
+              {activeTab === 'attendance' && <AttendanceModule />}
+              {activeTab === 'payroll' && <PayrollModule />}
+              {activeTab === 'ai' && <AiEvaluationModule />}
+              {activeTab === 'update' && <UpdateModule />}
+              {activeTab === 'settings' && <SettingsModule />}
+            </>
+          )}
         </ErrorBoundary>
       </main>
 

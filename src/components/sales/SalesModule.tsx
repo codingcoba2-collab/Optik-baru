@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 
 export const SalesModule: React.FC = () => {
-  const { salesOrders, addSaleOrder, deleteSaleOrder, products, employees, store } = useApp();
+  const { salesOrders, addSaleOrder, deleteSaleOrder, products, employees, store, showToast } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedChannel, setSelectedChannel] = useState<string>('Semua');
@@ -35,7 +35,9 @@ export const SalesModule: React.FC = () => {
 
   // Selected Order Items
   const [orderItems, setOrderItems] = useState<SaleItem[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '');
+  const [selectedProductId, setSelectedProductId] = useState<string>('');
+  const [productCodeName, setProductCodeName] = useState<string>('');
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false);
   const [itemQty, setItemQty] = useState(1);
   const [itemCustomPrice, setItemCustomPrice] = useState(0);
 
@@ -56,28 +58,53 @@ export const SalesModule: React.FC = () => {
   ];
 
   const hosts = employees.filter((e) => e.roles.includes('host'));
-  const admins = employees.filter((e) => e.roles.includes('admin'));
-  const technicians = employees.filter((e) => e.roles.includes('faset'));
+  const pelayans = employees.filter((e) => e.roles.includes('admin') || e.roles.includes('pelayan'));
+  const technicians = employees.filter((e) => e.roles.includes('faset') || e.roles.includes('teknisi'));
+
+  const matchingProducts = productCodeName.trim()
+    ? products.filter(
+        (p) =>
+          p.sku.toLowerCase().includes(productCodeName.toLowerCase().trim()) ||
+          p.name.toLowerCase().includes(productCodeName.toLowerCase().trim())
+      )
+    : [];
 
   const handleAddItemToCart = () => {
-    const prod = products.find((p) => p.id === selectedProductId);
-    if (!prod) return;
+    let targetProduct = products.find((p) => p.id === selectedProductId);
+    if (!targetProduct && productCodeName.trim()) {
+      targetProduct =
+        products.find(
+          (p) =>
+            p.sku.toLowerCase() === productCodeName.toLowerCase().trim() ||
+            p.name.toLowerCase() === productCodeName.toLowerCase().trim()
+        ) || matchingProducts[0];
+    }
 
-    const price = itemCustomPrice > 0 ? itemCustomPrice : prod.sellingPrice;
-    const isBundle = orderFormat === 'Bundling Resep' || prod.category === 'Lensa Kacamata';
+    const inputName = targetProduct ? targetProduct.name : productCodeName.trim();
+    if (!inputName) {
+      showToast('Ketik code name produk / SKU terlebih dahulu', 'warning');
+      return;
+    }
+
+    const price = itemCustomPrice > 0 ? itemCustomPrice : (targetProduct ? targetProduct.sellingPrice : 0);
+    const isBundle = orderFormat === 'Bundling Resep' || (targetProduct ? targetProduct.category === 'Lensa Kacamata' : false);
+    const hpp = targetProduct ? targetProduct.realHpp : price * 0.6;
 
     const newItem: SaleItem = {
-      productId: prod.id,
-      productName: prod.name,
+      productId: targetProduct ? targetProduct.id : 'custom-' + Date.now(),
+      productName: targetProduct ? `[${targetProduct.sku}] ${targetProduct.name}` : inputName,
       qty: itemQty,
       price,
-      hpp: prod.realHpp,
+      hpp,
       isBundle,
     };
 
     setOrderItems((prev) => [...prev, newItem]);
+    setProductCodeName('');
+    setSelectedProductId('');
     setItemQty(1);
     setItemCustomPrice(0);
+    setIsSuggestOpen(false);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -277,7 +304,7 @@ export const SalesModule: React.FC = () => {
                     <td className="py-3.5 px-3">
                       <div className="text-[11px] space-y-0.5 text-slate-500 dark:text-slate-400">
                         {hostEmp && <div>Host: <strong className="text-slate-700 dark:text-slate-200">{hostEmp.name}</strong></div>}
-                        {adminEmp && <div>Admin: <strong className="text-slate-700 dark:text-slate-200">{adminEmp.name}</strong></div>}
+                        {adminEmp && <div>Pelayan: <strong className="text-slate-700 dark:text-slate-200">{adminEmp.name}</strong></div>}
                         {fasetEmp && <div>Lab: <strong className="text-slate-700 dark:text-slate-200">{fasetEmp.name}</strong></div>}
                         {!hostEmp && !adminEmp && !fasetEmp && <span>-</span>}
                       </div>
@@ -385,43 +412,93 @@ export const SalesModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Add Items to Order Section */}
+              {/* Add Items to Order Section - Input Code Name Produk */}
               <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 space-y-3">
                 <div className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
-                  <span>Pilih Item Frame / Lensa / Aksesoris</span>
+                  <span>Pilih Item Frame / Lensa / Aksesoris (Input Code Name Produk)</span>
                   <span className="text-[11px] text-slate-400">Total Item Terpilih: {orderItems.length}</span>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-                  <div className="sm:col-span-6">
-                    <select
-                      value={selectedProductId}
-                      onChange={(e) => setSelectedProductId(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
-                    >
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name} ({formatRupiah(p.sellingPrice)}) - Stok: {p.stockQty}
-                        </option>
-                      ))}
-                    </select>
+                  {/* Code Name Input */}
+                  <div className="sm:col-span-6 relative">
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1">
+                      Ketik Code Name / SKU Produk
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={productCodeName}
+                        onChange={(e) => {
+                          setProductCodeName(e.target.value);
+                          setIsSuggestOpen(true);
+                        }}
+                        onFocus={() => setIsSuggestOpen(true)}
+                        placeholder="Ketik code name / SKU produk..."
+                        className="w-full px-3 py-2 text-xs rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-sky-500 font-medium"
+                      />
+                      {productCodeName && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductCodeName('');
+                            setSelectedProductId('');
+                            setIsSuggestOpen(false);
+                          }}
+                          className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Auto-suggest dropdown based on code name / SKU */}
+                    {isSuggestOpen && matchingProducts.length > 0 && (
+                      <div className="absolute left-0 right-0 top-full mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 p-1.5 z-50">
+                        {matchingProducts.map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedProductId(p.id);
+                              setProductCodeName(`${p.sku} - ${p.name}`);
+                              setItemCustomPrice(p.sellingPrice);
+                              setIsSuggestOpen(false);
+                            }}
+                            className="w-full text-left px-2.5 py-1.5 rounded-lg text-xs hover:bg-sky-50 dark:hover:bg-slate-700 flex items-center justify-between transition-colors cursor-pointer"
+                          >
+                            <div>
+                              <span className="font-mono font-bold text-sky-600 dark:text-sky-400 mr-2">[{p.sku}]</span>
+                              <span className="font-medium text-slate-900 dark:text-white">{p.name}</span>
+                              <span className="text-[10px] text-slate-400 block">{p.category} • Stok: {p.stockQty}</span>
+                            </div>
+                            <span className="font-bold text-emerald-600 dark:text-emerald-400 text-xs shrink-0 ml-2">
+                              {formatRupiah(p.sellingPrice)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div className="sm:col-span-2">
+                    <label className="block text-[11px] font-semibold text-slate-600 dark:text-slate-300 mb-1 text-center">
+                      Qty
+                    </label>
                     <input
                       type="number"
                       min="1"
                       value={itemQty}
                       onChange={(e) => setItemQty(parseInt(e.target.value, 10) || 1)}
-                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-center font-bold"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-center font-bold text-xs"
                     />
                   </div>
 
-                  <div className="sm:col-span-4">
+                  <div className="sm:col-span-4 flex items-end">
                     <button
                       type="button"
                       onClick={handleAddItemToCart}
-                      className="w-full py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition-colors flex items-center justify-center gap-1.5"
+                      className="w-full py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-semibold transition-colors flex items-center justify-center gap-1.5 text-xs shadow-sm cursor-pointer"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       Tambah ke Pesanan
@@ -453,7 +530,7 @@ export const SalesModule: React.FC = () => {
                           <button
                             type="button"
                             onClick={() => handleRemoveItem(idx)}
-                            className="text-rose-400 hover:text-rose-600"
+                            className="text-rose-400 hover:text-rose-600 cursor-pointer"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
@@ -484,15 +561,15 @@ export const SalesModule: React.FC = () => {
 
                 <div>
                   <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Atribusi Admin Toko/MP
+                    Atribusi Pelayan Toko
                   </label>
                   <select
                     value={adminEmployeeId}
                     onChange={(e) => setAdminEmployeeId(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
                   >
-                    <option value="">-- Tanpa Admin Khusus --</option>
-                    {admins.map((a) => (
+                    <option value="">-- Tanpa Pelayan Khusus --</option>
+                    {pelayans.map((a) => (
                       <option key={a.id} value={a.id}>{a.name}</option>
                     ))}
                   </select>
