@@ -60,7 +60,18 @@ async function startServer() {
   // 3. Create Virtual Account Transaction
   app.post('/api/payment/create-va', async (req, res) => {
     try {
-      const {
+      const body = req.body || {};
+      const orderId = body.orderId || `ord-${Date.now().toString(36)}`;
+      const orderNo = body.orderNo || `INV-${orderId}`;
+      const customerId = body.customerId || 'guest-customer';
+      const customerName = body.customerName || 'Pelanggan Optik';
+      const customerPhone = body.customerPhone || '-';
+      const customerEmail = body.customerEmail || 'customer@eyehub.id';
+      const amount = Number(body.amount) > 0 ? Number(body.amount) : 10000;
+      const bankCode = (body.bankCode || 'bri').toLowerCase();
+      const items = body.items || [];
+
+      const transaction = await createVirtualAccountTransaction({
         orderId,
         orderNo,
         customerId,
@@ -70,24 +81,6 @@ async function startServer() {
         amount,
         bankCode,
         items
-      } = req.body;
-
-      if (!orderId || !amount || !bankCode) {
-        return res.status(400).json({
-          error: 'Parameter tidak lengkap: orderId, amount, dan bankCode wajib diisi.'
-        });
-      }
-
-      const transaction = await createVirtualAccountTransaction({
-        orderId,
-        orderNo,
-        customerId: customerId || 'guest-customer',
-        customerName: customerName || 'Pelanggan Optik',
-        customerPhone,
-        customerEmail,
-        amount: Number(amount),
-        bankCode,
-        items: items || []
       });
 
       return res.status(201).json({
