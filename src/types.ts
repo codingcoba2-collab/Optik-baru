@@ -154,6 +154,11 @@ export interface OpticalProduct {
   coating?: string; // e.g. "Anti-Reflective", "Super Hydrophobic", "Blue Ray Protection"
   diameter?: string; // e.g. "70mm"
 
+  // Media Produk (Foto & Video Etalase)
+  imageUrl?: string;
+  videoUrl?: string;
+  mediaType?: 'image' | 'video' | 'both';
+
   // Marketplace & Iklan
   isMarketplaceListed?: boolean;
   soldCount?: number;
@@ -290,6 +295,7 @@ export interface MarketplaceOrder {
 
 export type SalesChannel = 
   | 'Marketplace App'
+  | 'Eye Hub Marketplace'
   | 'TikTok Live' 
   | 'Shopee Live' 
   | 'Tokopedia Live' 
@@ -403,6 +409,10 @@ export interface StoreAccount {
   escrowBalance: number;
   hasInternalTechnician: boolean; // apakah ada teknisi faset internal
   defaultExternalFasetCost: number; // biaya faset maklon/luar jika tidak ada teknisi internal
+  // Rekening Bank Toko / Seller
+  bankName?: string; // e.g. 'BCA', 'Mandiri', 'BRI', 'BNI', 'BSI'
+  bankAccountNumber?: string; // e.g. '8820192831'
+  bankAccountHolder?: string; // e.g. 'Optik Mitra Jaya'
 }
 
 export type ShiftType = 

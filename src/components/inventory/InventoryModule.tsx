@@ -17,7 +17,12 @@ import {
   X,
   Sparkles,
   Tag,
-  Check
+  Check,
+  Image as ImageIcon,
+  Video as VideoIcon,
+  UploadCloud,
+  Play,
+  Film
 } from 'lucide-react';
 
 const LENS_CATEGORIES: { key: LensCategoryType; label: string; desc: string; color: string }[] = [
@@ -72,6 +77,13 @@ export const InventoryModule: React.FC = () => {
   const [coating, setCoating] = useState('Super Hydrophobic Anti-Reflective');
   const [diameter, setDiameter] = useState('70mm');
 
+  // Media (Gambar & Video) State
+  const [imageUrl, setImageUrl] = useState('');
+  const [videoUrl, setVideoUrl] = useState('');
+  const [mediaType, setMediaType] = useState<'image' | 'video' | 'both'>('image');
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [isDraggingVideo, setIsDraggingVideo] = useState(false);
+
   const categories: OpticalCategory[] = [
     'Frame Kacamata',
     'Lensa Kacamata',
@@ -115,6 +127,9 @@ export const InventoryModule: React.FC = () => {
     setAdd('0.00');
     setCoating('Super Hydrophobic Blue Cut');
     setDiameter('70mm');
+    setImageUrl('');
+    setVideoUrl('');
+    setMediaType('image');
     setIsModalOpen(true);
   };
 
@@ -191,6 +206,10 @@ export const InventoryModule: React.FC = () => {
     setCoating(p.coating || 'Standard HC');
     setDiameter(p.diameter || '70mm');
 
+    setImageUrl(p.imageUrl || '');
+    setVideoUrl(p.videoUrl || '');
+    setMediaType(p.mediaType || (p.videoUrl && p.imageUrl ? 'both' : (p.videoUrl ? 'video' : 'image')));
+
     setIsModalOpen(true);
   };
 
@@ -230,6 +249,9 @@ export const InventoryModule: React.FC = () => {
         add: add || '0.00',
         coating: coating || 'Standard HC',
         diameter: diameter || '70mm',
+        imageUrl: imageUrl.trim() || undefined,
+        videoUrl: videoUrl.trim() || undefined,
+        mediaType: (imageUrl && videoUrl ? 'both' : (videoUrl ? 'video' : 'image')),
         isMarketplaceListed: true,
         soldCount: editingProduct?.soldCount || 0,
         rating: editingProduct?.rating || 4.9,
@@ -423,9 +445,35 @@ export const InventoryModule: React.FC = () => {
                   return (
                     <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="p-3.5">
-                        <div className="font-bold text-white text-sm">{p.name}</div>
-                        <div className="font-mono text-[11px] text-slate-400">
-                          {p.sku} • {p.category}
+                        <div className="flex items-center gap-3">
+                          {p.imageUrl ? (
+                            <img
+                              src={p.imageUrl}
+                              alt={p.name}
+                              className="w-11 h-11 rounded-xl object-cover border border-slate-700 bg-slate-800 shrink-0"
+                            />
+                          ) : p.videoUrl ? (
+                            <div className="w-11 h-11 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 shrink-0">
+                              <Film className="w-5 h-5" />
+                            </div>
+                          ) : (
+                            <div className="w-11 h-11 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-500 shrink-0">
+                              <Glasses className="w-5 h-5" />
+                            </div>
+                          )}
+                          <div>
+                            <div className="font-bold text-white text-sm flex items-center gap-1.5">
+                              <span>{p.name}</span>
+                              {p.videoUrl && (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-semibold inline-flex items-center gap-0.5">
+                                  <Play className="w-2.5 h-2.5 fill-current" /> Video
+                                </span>
+                              )}
+                            </div>
+                            <div className="font-mono text-[11px] text-slate-400">
+                              {p.sku} • {p.category}
+                            </div>
+                          </div>
                         </div>
                       </td>
 
@@ -852,6 +900,194 @@ export const InventoryModule: React.FC = () => {
                     onChange={(e) => setMinStockAlert(Number(e.target.value))}
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
                   />
+                </div>
+              </div>
+
+              {/* MEDIA UPLOAD: Foto Gambar & Video Produk */}
+              <div className="p-4 rounded-xl bg-slate-800/60 border border-slate-750 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <UploadCloud className="w-4 h-4 text-sky-400" />
+                    <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
+                      Media Produk (Foto Gambar & Video Demonstrasi Lensa / Frame)
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-sky-400 font-semibold bg-sky-500/10 px-2 py-0.5 rounded-full">
+                    Tampil di Eye Hub Marketplace
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Unggah file dari perangkat Anda (drag-and-drop atau klik) atau masukkan link URL eksternal gambar & video.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {/* 1. Upload / Masukkan Gambar */}
+                  <div className="space-y-2">
+                    <label className="block font-semibold text-slate-300 text-xs flex items-center gap-1.5">
+                      <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+                      Foto Produk / Lensa
+                    </label>
+
+                    {/* Image Drag and Drop Zone */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingImage(true);
+                      }}
+                      onDragLeave={() => setIsDraggingImage(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingImage(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && file.type.startsWith('image/')) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setImageUrl(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className={`relative border-2 border-dashed rounded-xl p-3 text-center transition-colors ${
+                        isDraggingImage
+                          ? 'border-sky-500 bg-sky-500/10'
+                          : 'border-slate-700 bg-slate-800/80 hover:border-slate-600'
+                      }`}
+                    >
+                      {imageUrl ? (
+                        <div className="relative group rounded-lg overflow-hidden max-h-36 bg-slate-900 flex items-center justify-center">
+                          <img
+                            src={imageUrl}
+                            alt="Preview Produk"
+                            className="w-full h-32 object-contain rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setImageUrl('')}
+                            className="absolute top-2 right-2 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-lg transition-colors cursor-pointer"
+                            title="Hapus foto"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block py-3">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => setImageUrl(ev.target?.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <ImageIcon className="w-8 h-8 text-slate-500 mx-auto mb-1.5" />
+                          <div className="text-xs font-semibold text-slate-300">
+                            Pilih Foto atau Tarik ke Sini
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            Format PNG, JPG, WebP (Maks 10MB)
+                          </div>
+                        </label>
+                      )}
+                    </div>
+
+                    {/* URL Image Fallback Input */}
+                    <div className="pt-1">
+                      <input
+                        type="url"
+                        value={imageUrl}
+                        onChange={(e) => setImageUrl(e.target.value)}
+                        placeholder="Atau tempel Link URL Foto Gambar"
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs focus:outline-hidden focus:border-sky-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 2. Upload / Masukkan Video */}
+                  <div className="space-y-2">
+                    <label className="block font-semibold text-slate-300 text-xs flex items-center gap-1.5">
+                      <VideoIcon className="w-3.5 h-3.5 text-purple-400" />
+                      Video Produk / Demonstrasi Lensa
+                    </label>
+
+                    {/* Video Drag and Drop Zone */}
+                    <div
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setIsDraggingVideo(true);
+                      }}
+                      onDragLeave={() => setIsDraggingVideo(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingVideo(false);
+                        const file = e.dataTransfer.files?.[0];
+                        if (file && file.type.startsWith('video/')) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => setVideoUrl(ev.target?.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                      className={`relative border-2 border-dashed rounded-xl p-3 text-center transition-colors ${
+                        isDraggingVideo
+                          ? 'border-purple-500 bg-purple-500/10'
+                          : 'border-slate-700 bg-slate-800/80 hover:border-slate-600'
+                      }`}
+                    >
+                      {videoUrl ? (
+                        <div className="relative group rounded-lg overflow-hidden max-h-36 bg-black flex items-center justify-center">
+                          <video
+                            src={videoUrl}
+                            controls
+                            className="w-full h-32 object-contain rounded-lg"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setVideoUrl('')}
+                            className="absolute top-2 right-2 p-1 bg-black/70 hover:bg-rose-600 text-white rounded-lg transition-colors cursor-pointer"
+                            title="Hapus video"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block py-3">
+                          <input
+                            type="file"
+                            accept="video/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => setVideoUrl(ev.target?.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                            className="hidden"
+                          />
+                          <VideoIcon className="w-8 h-8 text-slate-500 mx-auto mb-1.5" />
+                          <div className="text-xs font-semibold text-slate-300">
+                            Pilih Video atau Tarik ke Sini
+                          </div>
+                          <div className="text-[10px] text-slate-500 mt-0.5">
+                            Format MP4, WebM (Maks 50MB)
+                          </div>
+                        </label>
+                      )}
+                    </div>
+
+                    {/* URL Video Fallback Input */}
+                    <div className="pt-1">
+                      <input
+                        type="url"
+                        value={videoUrl}
+                        onChange={(e) => setVideoUrl(e.target.value)}
+                        placeholder="Atau tempel Link Video (MP4 / Streaming)"
+                        className="w-full px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-slate-200 text-xs focus:outline-hidden focus:border-purple-500"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </form>

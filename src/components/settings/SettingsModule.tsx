@@ -14,6 +14,8 @@ import {
   LogOut,
   User,
   ShieldCheck,
+  CreditCard,
+  Building2,
 } from 'lucide-react';
 
 export const SettingsModule: React.FC = () => {
@@ -43,6 +45,11 @@ export const SettingsModule: React.FC = () => {
   const [adminFeePercent, setAdminFeePercent] = useState(store.marketplaceAdminFeePercent);
   const [serviceFee, setServiceFee] = useState(store.serviceFeePerOrder);
 
+  // Rekening Bank Seller
+  const [bankName, setBankName] = useState(store.bankName || 'BCA');
+  const [bankAccountNumber, setBankAccountNumber] = useState(store.bankAccountNumber || '');
+  const [bankAccountHolder, setBankAccountHolder] = useState(store.bankAccountHolder || '');
+
   const palettes: { name: ThemePalette; label: string; colorClass: string }[] = [
     { name: 'Electric Ocean', label: 'Electric Ocean', colorClass: 'bg-sky-500' },
     { name: 'Neon Cyber', label: 'Neon Cyber', colorClass: 'bg-indigo-600' },
@@ -62,8 +69,11 @@ export const SettingsModule: React.FC = () => {
       monthlyTargetOmzet: monthlyTarget,
       marketplaceAdminFeePercent: adminFeePercent,
       serviceFeePerOrder: serviceFee,
+      bankName,
+      bankAccountNumber,
+      bankAccountHolder,
     });
-    showToast('Pengaturan toko berhasil diperbarui', 'success');
+    showToast('Pengaturan toko & nomor rekening seller berhasil disimpan', 'success');
   };
 
   const handleExportJson = () => {
@@ -218,7 +228,7 @@ export const SettingsModule: React.FC = () => {
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">%</span>
               </div>
-              <span className="text-[10px] text-slate-400">TikTok Shop / Shopee standard 8.5%</span>
+              <span className="text-[10px] text-slate-400">Eye Hub Marketplace fee standard 5.0%</span>
             </div>
 
             <div>
@@ -228,6 +238,93 @@ export const SettingsModule: React.FC = () => {
               <CommaNumberInput value={serviceFee} onChange={setServiceFee} />
               <span className="text-[10px] text-slate-400">Misal biaya penanganan order Rp 1.000</span>
             </div>
+          </div>
+
+          {/* Rekening Bank Penampung Penjualan Seller */}
+          <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3 mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-sky-500" />
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                  Nomor Rekening Bank Seller (Penampung Dana Hasil Penjualan)
+                </h4>
+              </div>
+              <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold bg-emerald-500/10 px-2.5 py-0.5 rounded-full">
+                Khusus Eye Hub
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Rekening ini digunakan untuk pencairan dana dari transaksi pesanan pelanggan di Eye Hub Marketplace.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nama Bank
+                </label>
+                <select
+                  value={bankName}
+                  onChange={(e) => setBankName(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                >
+                  <option value="BCA">Bank BCA</option>
+                  <option value="Mandiri">Bank Mandiri</option>
+                  <option value="BRI">Bank BRI</option>
+                  <option value="BNI">Bank BNI</option>
+                  <option value="BSI">Bank Syariah Indonesia (BSI)</option>
+                  <option value="CIMB Niaga">Bank CIMB Niaga</option>
+                  <option value="Bank Jago">Bank Jago</option>
+                  <option value="Permata">Bank Permata</option>
+                  <option value="Other">Bank Lainnya</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Nomor Rekening
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={bankAccountNumber}
+                  onChange={(e) => setBankAccountNumber(e.target.value)}
+                  placeholder="Contoh: 8820192831"
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-mono font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                  Atas Nama (A.N. Pemilik Rekening)
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={bankAccountHolder}
+                  onChange={(e) => setBankAccountHolder(e.target.value)}
+                  placeholder="Contoh: Optik Sejahtera Mandiri"
+                  className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-medium"
+                />
+              </div>
+            </div>
+
+            {bankAccountNumber && (
+              <div className="p-3 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/80 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                  <span className="font-semibold text-slate-700 dark:text-slate-300">
+                    Preview Transfer Seller:
+                  </span>
+                  <span className="font-mono font-bold text-sky-700 dark:text-sky-300">
+                    {bankName} - {bankAccountNumber}
+                  </span>
+                  <span className="text-slate-500">
+                    (a.n. {bankAccountHolder || '-'})
+                  </span>
+                </div>
+                <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">Siap Menerima Payout</span>
+              </div>
+            )}
           </div>
 
           <div className="pt-4 flex justify-end">

@@ -8,6 +8,7 @@ import {
   Lock,
   Phone,
   ArrowRight,
+  ArrowLeft,
   Sparkles,
   KeyRound,
   CheckCircle2,
@@ -23,10 +24,11 @@ import {
   Check,
   X,
   ShieldCheck,
-  MessageSquare
+  MessageSquare,
+  BookOpen
 } from 'lucide-react';
 
-export const LoginModule: React.FC = () => {
+export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBackToEducation }) => {
   const {
     loginSeller,
     loginConsumer,
@@ -267,6 +269,16 @@ export const LoginModule: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {onBackToEducation && (
+            <button
+              onClick={onBackToEducation}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+            >
+              <ArrowLeft className="w-3.5 h-3.5 text-sky-400" />
+              <span>Edukasi Mata & Lensa</span>
+            </button>
+          )}
+
           {/* Update App Button on Login Screen */}
           <button
             onClick={() => setIsUpdateModalOpen(true)}

@@ -406,70 +406,92 @@ export const EmployeeModule: React.FC = () => {
         </div>
       )}
 
-      {/* Form Modal (Add / Edit Pegawai) */}
+      {/* Form Modal (Add / Edit Pegawai) with Fixed Alignment and Scroll */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-xl w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-8 space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <Shield className="w-5 h-5 text-sky-400" />
-                <h3 className="text-base font-bold text-white">
-                  {editingId ? 'Edit Data Pegawai' : 'Buat Akun & Skema Pegawai Baru'}
-                </h3>
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
+          <div className="max-w-2xl w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl my-auto flex flex-col max-h-[92vh] overflow-hidden">
+            {/* Modal Header (Sticky) */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 shrink-0 bg-white dark:bg-slate-900">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center text-sky-600 dark:text-sky-400">
+                  <Shield className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    {editingId ? 'Edit Data Pegawai' : 'Buat Akun & Skema Pegawai Baru'}
+                  </h3>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                    Pengaturan kredensial login, peran rangkap, dan formula penggajian
+                  </p>
+                </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-              {/* Basic Identitas */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">Nama Lengkap</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Contoh: Budi Santoso"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
-                  />
-                </div>
-                <div>
-                  <label className="block font-bold text-slate-300 mb-1">Nomor HP / WhatsApp</label>
-                  <input
-                    type="text"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Contoh: 081298765432"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
-                  />
+            {/* Scrollable Form Body */}
+            <form id="employee-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 text-xs">
+              {/* 1. Basic Identitas */}
+              <div>
+                <label className="block text-[11px] font-bold text-slate-400 dark:text-slate-400 uppercase tracking-wider mb-2">
+                  1. Informasi Identitas Pegawai
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nama Lengkap <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Contoh: Budi Santoso"
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Nomor HP / WhatsApp
+                    </label>
+                    <input
+                      type="text"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Contoh: 081298765432"
+                      className="w-full px-3 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
+                    />
+                  </div>
                 </div>
               </div>
 
-              {/* Login Credentials dibuat oleh Owner */}
-              <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
-                <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
-                  Kredensial Login Pegawai (Dibuat oleh Owner)
+              {/* 2. Login Credentials */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider">
+                  2. Kredensial Akun Login Pegawai (Dibuat oleh Owner)
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Username Login</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                      Username Login <span className="text-rose-500">*</span>
+                    </label>
                     <input
                       type="text"
                       required
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="budi_optisi"
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
+                      placeholder="Contoh: budi_optisi"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all font-mono text-xs"
                     />
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Password Login</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                      Password Login <span className="text-rose-500">*</span>
+                    </label>
                     <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
@@ -477,26 +499,31 @@ export const EmployeeModule: React.FC = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Minimal 6 karakter"
-                        className="w-full px-3 pr-9 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
+                        className="w-full px-3 pr-9 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all font-mono text-xs"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                       >
-                        {showPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Multi-Role (Bisa Rangkap) */}
+              {/* 3. Multi-Role (Bisa Rangkap) */}
               <div>
-                <label className="block font-bold text-slate-300 mb-1.5">
-                  Role Peran Kerja (Dapat Dipilih Lebih Dari Satu / Bisa Rangkap)
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block font-bold text-slate-800 dark:text-slate-200 text-xs">
+                    3. Peran Kerja / Jabatan (Dapat Dipilih Lebih Dari Satu / Bisa Rangkap)
+                  </label>
+                  <span className="text-[11px] text-sky-600 dark:text-sky-400 font-semibold">
+                    {selectedRoles.length} Peran Terpilih
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {ALL_ROLES.map((role) => {
                     const isSelected = selectedRoles.includes(role.key);
                     return (
@@ -504,26 +531,28 @@ export const EmployeeModule: React.FC = () => {
                         key={role.key}
                         type="button"
                         onClick={() => toggleRole(role.key)}
-                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2.5 ${
                           isSelected
-                            ? 'bg-sky-600/15 border-sky-500 text-white shadow-sm'
-                            : 'bg-slate-800/70 border-slate-700/80 text-slate-400 hover:border-slate-600'
+                            ? 'bg-sky-50 dark:bg-sky-950/40 border-sky-500 text-slate-900 dark:text-white shadow-xs'
+                            : 'bg-slate-50/70 dark:bg-slate-800/70 border-slate-200 dark:border-slate-700/80 text-slate-600 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-600'
                         }`}
                       >
                         <div
                           className={`w-4 h-4 rounded mt-0.5 flex items-center justify-center border shrink-0 ${
                             isSelected
                               ? 'bg-sky-600 border-sky-500 text-white'
-                              : 'border-slate-600 bg-slate-800'
+                              : 'border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800'
                           }`}
                         >
                           {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
                         </div>
-                        <div>
-                          <div className="font-bold text-xs flex items-center gap-1.5">
+                        <div className="flex-1">
+                          <div className="font-bold text-xs text-slate-900 dark:text-white flex items-center justify-between">
                             <span>{role.label}</span>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5">{role.desc}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">
+                            {role.desc}
+                          </p>
                         </div>
                       </button>
                     );
@@ -531,39 +560,44 @@ export const EmployeeModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Skema Gaji Pokok */}
-              <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
-                <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
-                  Skema Gaji Pokok
+              {/* 4. Skema Gaji Pokok */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider">
+                  4. Skema Gaji Pokok
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Periode Gaji</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Periode Gaji</label>
                     <select
                       value={salaryPeriod}
                       onChange={(e) => setSalaryPeriod(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                     >
-                      <option value="hourly">Per Jam</option>
-                      <option value="daily">Per Hari</option>
                       <option value="monthly">Per Bulan</option>
+                      <option value="daily">Per Hari</option>
+                      <option value="hourly">Per Jam</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Nominal Gaji (Rp)</label>
-                    <input
-                      type="number"
-                      value={salaryRate}
-                      onChange={(e) => setSalaryRate(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
-                    />
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Nominal Gaji</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={salaryRate || ''}
+                        onChange={(e) => setSalaryRate(Number(e.target.value))}
+                        placeholder="Contoh: 3000000"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Hitungan Gaji</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Hitungan Gaji</label>
                     <select
                       value={salaryCalculationType}
                       onChange={(e) => setSalaryCalculationType(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                     >
                       <option value="flat">Gaji Tetap (Flat)</option>
                       <option value="per_pcs">Sesuai Pcs Terjual</option>
@@ -573,39 +607,44 @@ export const EmployeeModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Skema Insentif */}
-              <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
-                <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider">
-                  Skema Insentif Penjualan
+              {/* 5. Skema Insentif */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
+                <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider">
+                  5. Skema Insentif Penjualan Reguler
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Periode Insentif</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Periode Insentif</label>
                     <select
                       value={incentivePeriod}
                       onChange={(e) => setIncentivePeriod(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                     >
-                      <option value="daily">Per Hari</option>
-                      <option value="weekly">Per Minggu</option>
                       <option value="monthly">Per Bulan</option>
+                      <option value="weekly">Per Minggu</option>
+                      <option value="daily">Per Hari</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Nominal Insentif (Rp)</label>
-                    <input
-                      type="number"
-                      value={incentiveRate}
-                      onChange={(e) => setIncentiveRate(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
-                    />
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Nominal Insentif</label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={incentiveRate || ''}
+                        onChange={(e) => setIncentiveRate(Number(e.target.value))}
+                        placeholder="Contoh: 15000"
+                        className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                      />
+                    </div>
                   </div>
                   <div>
-                    <label className="block text-slate-400 mb-1 font-semibold">Berdasarkan</label>
+                    <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">Berdasarkan</label>
                     <select
                       value={incentiveCalculationType}
                       onChange={(e) => setIncentiveCalculationType(e.target.value as any)}
-                      className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                      className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                     >
                       <option value="per_pcs">Per Pcs Terjual</option>
                       <option value="per_package">Per Paket Resep</option>
@@ -614,106 +653,121 @@ export const EmployeeModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Insentif Tambahan Target Per Hari */}
-              <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
+              {/* 6. Insentif Tambahan Target Per Hari */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                    <Target className="w-3.5 h-3.5 text-amber-400" />
-                    Insentif Tambahan Target Per Hari
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                    <Target className="w-3.5 h-3.5 text-amber-500" />
+                    6. Insentif Tambahan Target Per Hari
                   </span>
-                  <label className="flex items-center gap-1.5 text-slate-300 font-semibold cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
                     <input
                       type="checkbox"
                       checked={dailyTargetEnabled}
                       onChange={(e) => setDailyTargetEnabled(e.target.checked)}
-                      className="rounded"
+                      className="w-4 h-4 rounded text-sky-600 cursor-pointer"
                     />
                     <span>Aktifkan</span>
                   </label>
                 </div>
 
                 {dailyTargetEnabled && (
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 pt-1">
                     <div>
-                      <label className="block text-slate-400 mb-1 font-semibold">
-                        Batas Target (Misal: &gt; 20 pcs)
+                      <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                        Batas Target Unit (Misal: &gt; 20 pcs)
                       </label>
                       <input
                         type="number"
+                        min="1"
                         value={dailyThresholdUnits}
                         onChange={(e) => setDailyThresholdUnits(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                        className="w-full px-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1 font-semibold">
-                        Insentif Reguler s/d Batas (Rp)
+                      <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                        Insentif Reguler s/d Batas
                       </label>
-                      <input
-                        type="number"
-                        value={dailyRegularRate}
-                        onChange={(e) => setDailyRegularRate(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={dailyRegularRate}
+                          onChange={(e) => setDailyRegularRate(Number(e.target.value))}
+                          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1 font-semibold">
-                        Bonus Tambahan Ke-21 Dst (Rp)
+                      <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                        Bonus Tambahan Unit Lewat Target
                       </label>
-                      <input
-                        type="number"
-                        value={dailyExcessBonusRate}
-                        onChange={(e) => setDailyExcessBonusRate(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={dailyExcessBonusRate}
+                          onChange={(e) => setDailyExcessBonusRate(Number(e.target.value))}
+                          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* Insentif Tambahan Target Per Bulan (Target Omzet & % Laba Bersih) */}
-              <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
+              {/* 7. Insentif Tambahan Target Per Bulan */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-slate-200 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
-                    <Award className="w-3.5 h-3.5 text-purple-400" />
-                    Insentif Tambahan Target Per Bulan
+                  <span className="font-bold text-slate-800 dark:text-slate-200 block text-[11px] uppercase tracking-wider flex items-center gap-1.5">
+                    <Award className="w-3.5 h-3.5 text-purple-500" />
+                    7. Insentif Tambahan Target Per Bulan (Omzet & Laba Bersih)
                   </span>
-                  <label className="flex items-center gap-1.5 text-slate-300 font-semibold cursor-pointer">
+                  <label className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
                     <input
                       type="checkbox"
                       checked={monthlyTargetEnabled}
                       onChange={(e) => setMonthlyTargetEnabled(e.target.checked)}
-                      className="rounded"
+                      className="w-4 h-4 rounded text-sky-600 cursor-pointer"
                     />
                     <span>Aktifkan</span>
                   </label>
                 </div>
 
                 {monthlyTargetEnabled && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-1">
                     <div>
-                      <label className="block text-slate-400 mb-1 font-semibold">
-                        Target Omzet Bulanan Toko (Rp)
+                      <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                        Target Omzet Bulanan Toko
                       </label>
-                      <input
-                        type="number"
-                        value={monthlyTargetOmzet}
-                        onChange={(e) => setMonthlyTargetOmzet(Number(e.target.value))}
-                        className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
-                      />
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-400">Rp</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={monthlyTargetOmzet}
+                          onChange={(e) => setMonthlyTargetOmzet(Number(e.target.value))}
+                          className="w-full pl-9 pr-3 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-slate-400 mb-1 font-semibold">
-                        Insentif: % Dari Laba Bersih Setelah Semua Pengeluaran
+                      <label className="block text-slate-600 dark:text-slate-400 mb-1 font-semibold">
+                        Bonus: % Dari Laba Bersih Setelah Semua Beban
                       </label>
                       <div className="relative">
                         <input
                           type="number"
                           step="0.1"
+                          min="0"
+                          max="100"
                           value={monthlyNetProfitPercent}
                           onChange={(e) => setMonthlyNetProfitPercent(Number(e.target.value))}
-                          placeholder="2.5"
-                          className="w-full px-3 pr-8 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white"
+                          placeholder="Contoh: 2.5"
+                          className="w-full px-3 pr-8 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-hidden focus:ring-2 focus:ring-sky-500"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-bold">
                           %
@@ -731,30 +785,31 @@ export const EmployeeModule: React.FC = () => {
                   id="empActive"
                   checked={active}
                   onChange={(e) => setActive(e.target.checked)}
-                  className="rounded"
+                  className="w-4 h-4 rounded text-sky-600 cursor-pointer"
                 />
-                <label htmlFor="empActive" className="text-slate-300 font-semibold cursor-pointer">
+                <label htmlFor="empActive" className="text-slate-700 dark:text-slate-300 font-semibold cursor-pointer">
                   Status Pegawai Aktif Bekerja
                 </label>
               </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-lg shadow-sky-600/30"
-                >
-                  {editingId ? 'Simpan Perubahan' : 'Daftarkan Pegawai'}
-                </button>
-              </div>
             </form>
+
+            {/* Modal Footer (Sticky) */}
+            <div className="p-4 sm:p-5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/90 flex items-center justify-end gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-semibold transition-colors cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                form="employee-form"
+                className="px-6 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-lg shadow-sky-600/30 transition-all cursor-pointer"
+              >
+                {editingId ? 'Simpan Perubahan' : 'Daftarkan Pegawai'}
+              </button>
+            </div>
           </div>
         </div>
       )}

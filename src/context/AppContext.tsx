@@ -378,6 +378,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     root.style.setProperty('--palette-900', p.p900);
     root.style.setProperty('--palette-950', p.p950);
 
+    // Also directly override Tailwind color-sky tokens so all UI components adapt immediately
+    root.style.setProperty('--color-sky-50', p.p50);
+    root.style.setProperty('--color-sky-100', p.p100);
+    root.style.setProperty('--color-sky-200', p.p200);
+    root.style.setProperty('--color-sky-300', p.p300);
+    root.style.setProperty('--color-sky-400', p.p400);
+    root.style.setProperty('--color-sky-500', p.p500);
+    root.style.setProperty('--color-sky-600', p.p600);
+    root.style.setProperty('--color-sky-700', p.p700);
+    root.style.setProperty('--color-sky-800', p.p800);
+    root.style.setProperty('--color-sky-900', p.p900);
+    root.style.setProperty('--color-sky-950', p.p950);
+
     localStorage.setItem('eyehub_dark', String(isDark));
     localStorage.setItem('eyehub_theme', theme);
   }, [isDark, theme]);
@@ -899,18 +912,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const adjustStock = async (id: string, delta: number) => {
-    const target = products.find((p) => p.id === id);
-    if (!target) return;
-    const newQty = Math.max(0, target.stockQty + delta);
-    setProducts((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, stockQty: newQty } : p))
-    );
+    let updatedName = '';
+    let updatedQty = 0;
+    let updatedUnit = 'Pcs';
+
+    setProducts((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (!target) return prev;
+      updatedName = target.name;
+      updatedUnit = target.unit || 'Pcs';
+      updatedQty = Math.max(0, target.stockQty + delta);
+      return prev.map((p) => (p.id === id ? { ...p, stockQty: updatedQty } : p));
+    });
+
     try {
-      await setDoc(doc(db, 'products', id), { stockQty: newQty }, { merge: true });
+      await setDoc(doc(db, 'products', id), { stockQty: updatedQty }, { merge: true });
     } catch (e) {
       console.warn('Firestore update stock notice:', e);
     }
-    showToast(`Stok ${target.name}: ${newQty} ${target.unit}`, 'info');
+
+    if (updatedName) {
+      if (delta < 0) {
+        showToast(`Stok "${updatedName}" otomatis berkurang ${Math.abs(delta)} ${updatedUnit} (Sisa: ${updatedQty})`, 'info');
+      } else {
+        showToast(`Stok "${updatedName}": ${updatedQty} ${updatedUnit}`, 'info');
+      }
+    }
   };
 
   // --- Lab Faset Handlers ---
@@ -1111,9 +1138,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.warn('Firestore order notice:', e);
     }
 
-    // Deduct stocks
+    // Deduct stocks automatically from seller inventory
     for (const item of orderData.items) {
-      await adjustStock(item.productId, -item.qty);
+      const q = (item as any).quantity || item.qty || 1;
+      await adjustStock(item.productId, -q);
     }
 
     // If order is direct confirmed, also add to sale orders
@@ -1121,7 +1149,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const saleItems = orderData.items.map(i => ({
         productId: i.productId,
         productName: i.productName,
-        qty: i.qty,
+        qty: (i as any).quantity || i.qty || 1,
         price: i.price,
         hpp: Math.round(i.price * 0.5)
       }));
@@ -1130,16 +1158,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         invoiceNo: orderNo,
         date: new Date().toISOString().split('T')[0],
         storeId: orderData.storeId,
-        channel: 'Marketplace App',
+        channel: 'Eye Hub Marketplace',
         orderFormat: 'Satuan',
         customerName: orderData.customerName,
         items: saleItems,
         grossAmount: orderData.totalAmount,
-        marketplaceAdminFee: Math.round(orderData.totalAmount * 0.085),
-        serviceFee: 1000,
-        netRevenue: Math.round(orderData.totalAmount * 0.915) - 1000,
+        marketplaceAdminFee: Math.round(orderData.totalAmount * (store.marketplaceAdminFeePercent ? store.marketplaceAdminFeePercent / 100 : 0.05)),
+        serviceFee: store.serviceFeePerOrder || 1000,
+        netRevenue: Math.round(orderData.totalAmount * 0.95) - (store.serviceFeePerOrder || 1000),
         totalHpp: Math.round(orderData.totalAmount * 0.5),
-        notes: `Pembayaran COD: ${orderData.shippingAddress}`
+        notes: `Transaksi Eye Hub: ${orderData.shippingAddress}`
       };
       setSalesOrders((prev) => [newSale, ...prev]);
     }
