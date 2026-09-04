@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import {
   RefreshCw,
@@ -18,7 +18,19 @@ import {
 } from 'lucide-react';
 
 export const UpdateModule: React.FC = () => {
-  const { isOnline, store, showToast, setIsPwaModalOpen } = useApp();
+  const { store, showToast, setIsPwaModalOpen } = useApp();
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   const [isChecking, setIsChecking] = useState(false);
   const [updateStatus, setUpdateStatus] = useState<string>('Aplikasi menggunakan versi terbaru (v2.4.0-PWA)');
   const [lastChecked, setLastChecked] = useState<string>(new Date().toLocaleTimeString('id-ID'));

@@ -442,27 +442,27 @@ export const MarketplaceModule: React.FC = () => {
                 >
                   <div className="space-y-1.5 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-sky-400">{ord.orderNumber}</span>
+                      <span className="font-mono text-xs font-bold text-sky-400">{ord.orderNumber || ord.orderNo}</span>
                       <span className="text-[10px] text-slate-400">• {new Date(ord.createdAt).toLocaleDateString('id-ID')}</span>
                       <span
                         className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
-                          ord.paymentStatus === 'paid'
+                          ord.paymentStatus === 'paid' || ord.paymentStatus === 'terverifikasi'
                             ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
                             : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
                         }`}
                       >
-                        {ord.paymentStatus === 'paid' ? 'Lunas' : 'Belum Bayar (COD)'}
+                        {ord.paymentStatus === 'paid' || ord.paymentStatus === 'terverifikasi' ? 'Lunas' : 'Belum Bayar (COD)'}
                       </span>
                     </div>
 
                     <div className="text-sm font-bold text-white">
-                      {ord.items.map((it) => `${it.productName} (${it.quantity}x)`).join(', ')}
+                      {(ord.items || []).map((it) => `${it.productName} (${it.quantity || it.qty || 1}x)`).join(', ')}
                     </div>
 
                     <div className="text-xs text-slate-400 flex flex-wrap gap-x-4 gap-y-1">
                       <span className="flex items-center gap-1">
                         <Truck className="w-3.5 h-3.5 text-sky-400" />
-                        Kurir: <strong className="text-slate-200">{ord.courier}</strong> (
+                        Kurir: <strong className="text-slate-200">{ord.courier || 'J&T'}</strong> (
                         {ord.shippingRateType === 'auto' ? 'Tarif Otomatis' : 'Tarif Manual'})
                       </span>
                       <span className="flex items-center gap-1">
@@ -471,7 +471,7 @@ export const MarketplaceModule: React.FC = () => {
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                        Tujuan: {ord.buyerName} ({ord.shippingAddress})
+                        Tujuan: {ord.buyerName || ord.customerName} ({ord.shippingAddress})
                       </span>
                     </div>
                   </div>
@@ -482,11 +482,11 @@ export const MarketplaceModule: React.FC = () => {
                       {formatRupiah(ord.totalAmount)}
                     </div>
                     <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      {ord.orderStatus === 'waiting_confirmation'
+                      {ord.orderStatus === 'waiting_confirmation' || ord.orderStatus === 'menunggu_pembayaran'
                         ? 'Menunggu Konfirmasi'
-                        : ord.orderStatus === 'in_lab'
+                        : ord.orderStatus === 'in_lab' || ord.orderStatus === 'faset'
                         ? 'Proses Lab Faset'
-                        : ord.orderStatus === 'shipped'
+                        : ord.orderStatus === 'shipped' || ord.orderStatus === 'dikirim'
                         ? 'Sedang Dikirim'
                         : 'Selesai'}
                     </span>

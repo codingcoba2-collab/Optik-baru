@@ -33,7 +33,7 @@ export const PayrollModule: React.FC = () => {
     e.preventDefault();
     if (!editingIncentiveEmp || !schemeForm) return;
 
-    updateEmployee({
+    updateEmployee(editingIncentiveEmp.id, {
       ...editingIncentiveEmp,
       salaryScheme: schemeForm,
     });

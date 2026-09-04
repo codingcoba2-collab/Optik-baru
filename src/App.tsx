@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppProvider, useApp } from './context/AppContext';
 import { Header } from './components/common/Header';
 import { ToastContainer } from './components/common/ToastContainer';
 import { PwaInstallModal } from './components/common/PwaInstallModal';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { DashboardModule } from './components/dashboard/DashboardModule';
 import { InventoryModule } from './components/inventory/InventoryModule';
 import { FasetLabModule } from './components/faset/FasetLabModule';
@@ -36,21 +37,27 @@ import {
 
 const AppContent: React.FC = () => {
   const { currentRole, store, isPwaModalOpen, setIsPwaModalOpen, isAuthenticated, userProfile } = useApp();
+  const isConsumer = userProfile?.role === 'consumer' || userProfile?.userType === 'consumer';
   const [activeTab, setActiveTab] = useState<string>(
-    userProfile?.role === 'consumer' ? 'marketplace' : 'dashboard'
+    isConsumer ? 'marketplace' : 'dashboard'
   );
+
+  // Synchronize default tab on role or userProfile change
+  useEffect(() => {
+    if (isConsumer && activeTab === 'dashboard') {
+      setActiveTab('marketplace');
+    }
+  }, [isConsumer]);
 
   if (!isAuthenticated) {
     return (
-      <>
+      <ErrorBoundary fallbackTitle="Kendala Memuat Halaman Login">
         <LoginModule />
         <ToastContainer />
         <PwaInstallModal isOpen={isPwaModalOpen} onClose={() => setIsPwaModalOpen(false)} />
-      </>
+      </ErrorBoundary>
     );
   }
-
-  const isConsumer = userProfile?.role === 'consumer' || userProfile?.userType === 'consumer';
 
   interface NavigationTabItem {
     id: string;
@@ -130,7 +137,7 @@ const AppContent: React.FC = () => {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-slate-700 dark:text-slate-300">
             <span className="font-bold text-sky-600 dark:text-sky-400">
-              {isConsumer ? '👤 Akun Konsumen' : `🏪 Toko Optik: ${store.name}`}
+              {isConsumer ? '👤 Akun Konsumen' : `🏪 Toko Optik: ${store?.name || 'Optik'}`}
             </span>
             <span>•</span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
@@ -153,19 +160,21 @@ const AppContent: React.FC = () => {
 
       {/* Main Content Modules */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
-        {activeTab === 'dashboard' && <DashboardModule onNavigate={setActiveTab} />}
-        {activeTab === 'marketplace' && <MarketplaceModule />}
-        {activeTab === 'inventory' && <InventoryModule />}
-        {activeTab === 'faset' && <FasetLabModule />}
-        {activeTab === 'employee' && <EmployeeModule />}
-        {activeTab === 'ads' && <AdsDiscountModule />}
-        {activeTab === 'sales' && <SalesModule />}
-        {activeTab === 'accounting' && <AccountingModule />}
-        {activeTab === 'attendance' && <AttendanceModule />}
-        {activeTab === 'payroll' && <PayrollModule />}
-        {activeTab === 'ai' && <AiEvaluationModule />}
-        {activeTab === 'update' && <UpdateModule />}
-        {activeTab === 'settings' && <SettingsModule />}
+        <ErrorBoundary fallbackTitle="Terjadi Kendala Memuat Modul" onReset={() => setActiveTab(isConsumer ? 'marketplace' : 'dashboard')}>
+          {activeTab === 'dashboard' && <DashboardModule onNavigate={setActiveTab} />}
+          {activeTab === 'marketplace' && <MarketplaceModule />}
+          {activeTab === 'inventory' && <InventoryModule />}
+          {activeTab === 'faset' && <FasetLabModule />}
+          {activeTab === 'employee' && <EmployeeModule />}
+          {activeTab === 'ads' && <AdsDiscountModule />}
+          {activeTab === 'sales' && <SalesModule />}
+          {activeTab === 'accounting' && <AccountingModule />}
+          {activeTab === 'attendance' && <AttendanceModule />}
+          {activeTab === 'payroll' && <PayrollModule />}
+          {activeTab === 'ai' && <AiEvaluationModule />}
+          {activeTab === 'update' && <UpdateModule />}
+          {activeTab === 'settings' && <SettingsModule />}
+        </ErrorBoundary>
       </main>
 
       {/* Bottom Navigation for Mobile Devices */}

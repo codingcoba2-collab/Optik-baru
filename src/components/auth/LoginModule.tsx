@@ -16,8 +16,15 @@ import {
   EyeOff,
   Sun,
   Moon,
-  Smartphone
+  Smartphone,
+  RefreshCw,
+  Zap,
+  HardDrive,
+  Check,
+  X,
+  ShieldCheck
 } from 'lucide-react';
+import { ZoomControls } from '../common/ZoomControls';
 
 export const LoginModule: React.FC = () => {
   const {
@@ -52,6 +59,53 @@ export const LoginModule: React.FC = () => {
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // PWA Update state on Login screen
+  const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'updated'>('idle');
+
+  const handleUpdateAppWithoutUninstall = async () => {
+    setIsUpdating(true);
+    setUpdateStatus('checking');
+    showToast('Memeriksa cache & memperbarui service worker...', 'info');
+
+    try {
+      // 1. Force update Service Worker
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+          await reg.update();
+          if (reg.waiting) {
+            reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
+        }
+      }
+
+      // 2. Clear stale cache storage to fetch latest code bundles
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
+      }
+
+      // 3. Mark update completed
+      setUpdateStatus('updated');
+      showToast('Pembaruan v2.4.0 siap! Memuat ulang aplikasi...', 'success');
+
+      // 4. Soft reload to activate fresh application version without uninstall
+      setTimeout(() => {
+        window.location.reload();
+      }, 1200);
+    } catch (err) {
+      console.error('Update failed:', err);
+      showToast('Gagal memperbarui otomatis. Memuat ulang browser...', 'info');
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,8 +206,8 @@ export const LoginModule: React.FC = () => {
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-sky-600/15 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
 
-      {/* Top Bar: Brand & Theme Toggle */}
-      <div className="max-w-6xl w-full mx-auto flex items-center justify-between z-10">
+      {/* Top Bar: Brand, Update Feature, ZoomControls & Theme Toggle */}
+      <div className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 z-10">
         <div className="flex items-center gap-2.5">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
             <Glasses className="w-5 h-5 stroke-[2.2]" />
@@ -170,13 +224,30 @@ export const LoginModule: React.FC = () => {
           </div>
         </div>
 
-        <button
-          onClick={() => setIsDark(!isDark)}
-          title={isDark ? 'Mode Terang' : 'Mode Gelap'}
-          className="p-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white transition-colors"
-        >
-          {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-400" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* In-app Zoom Controls */}
+          <ZoomControls />
+
+          {/* Update App Button on Login Screen */}
+          <button
+            onClick={() => setIsUpdateModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
+          >
+            <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
+            <span>Update App</span>
+            <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-sky-400/20 text-sky-300 font-bold">
+              v2.4.0
+            </span>
+          </button>
+
+          <button
+            onClick={() => setIsDark(!isDark)}
+            title={isDark ? 'Mode Terang' : 'Mode Gelap'}
+            className="p-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+          >
+            {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-sky-400" />}
+          </button>
+        </div>
       </div>
 
       {/* Main Authentication Card */}
@@ -458,6 +529,24 @@ export const LoginModule: React.FC = () => {
             <span>Daftar / Masuk dengan Akun Google</span>
           </button>
 
+          {/* Quick PWA Update info banner on login card */}
+          <div className="mt-4 p-3 rounded-xl bg-sky-950/40 border border-sky-800/40 flex items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2">
+              <RefreshCw className="w-4 h-4 text-sky-400 shrink-0" />
+              <div>
+                <span className="font-bold text-sky-300 block">Pembaruan Tersedia (v2.4.0)</span>
+                <span className="text-[10px] text-slate-400">Update langsung tanpa perlu uninstall</span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsUpdateModalOpen(true)}
+              className="py-1 px-2.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white font-bold text-[11px] shadow-sm transition-all cursor-pointer shrink-0"
+            >
+              Cek Update
+            </button>
+          </div>
+
           {/* Toggle between Login and Register */}
           <div className="mt-6 pt-4 border-t border-slate-800/80 text-center">
             {authMode === 'login' ? (
@@ -539,6 +628,96 @@ export const LoginModule: React.FC = () => {
                 className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50"
               >
                 {isLoading ? 'Memverifikasi...' : 'Verifikasi & Aktifkan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Update Modal on Login Screen (Works without uninstalling) */}
+      {isUpdateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4 my-6">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                  <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+                </div>
+                <div>
+                  <h3 className="text-sm font-black text-white">Pusat Pembaruan Aplikasi</h3>
+                  <span className="text-[10px] text-sky-400 font-bold">eye hub v2.4.0 (PWA Service Worker)</span>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsUpdateModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Version Information Card */}
+            <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Versi Terbaru Sistem:</span>
+                <span className="text-xs font-mono font-bold text-emerald-400 flex items-center gap-1">
+                  <CheckCircle2 className="w-3.5 h-3.5" />
+                  v2.4.0-PWA (Ready)
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-slate-400">Metode Pembaruan:</span>
+                <span className="text-xs font-semibold text-white">
+                  Instan (Tanpa Uninstall)
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 leading-relaxed pt-1 border-t border-slate-700/60">
+                Fitur ini memperbarui cache browser & service worker secara otomatis sehingga Anda langsung mendapatkan fitur terkini tanpa perlu menghapus atau menginstal ulang aplikasi.
+              </p>
+            </div>
+
+            {/* What's new highlights */}
+            <div className="space-y-1.5 text-xs">
+              <span className="font-bold text-slate-200 text-[11px] flex items-center gap-1">
+                <Zap className="w-3.5 h-3.5 text-amber-400" />
+                Sorotan Fitur Baru v2.4.0:
+              </span>
+              <ul className="space-y-1 text-[11px] text-slate-300 pl-4 list-disc">
+                <li>Dukungan Zoom In & Zoom Out layar (+ / - / reset) di seluruh tampilan.</li>
+                <li>6 Palet Tema Warna Toko (Electric Ocean, Neon, Mint, Violet, Coral, Studio).</li>
+                <li>Preskripsi Lensa Resep (OD/OS SPH, CYL, Axis, Add) pada checkout pesanan.</li>
+                <li>Sinkronisasi Cloud Real-time dengan Google Firebase Firestore.</li>
+                <li>Katalog Lensa Multi-Kategori & Lab Faset Luar dengan input biaya faset.</li>
+                <li>Pembaruan instan langsung dari halaman login tanpa uninstall.</li>
+              </ul>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="pt-2 space-y-2">
+              <button
+                type="button"
+                onClick={handleUpdateAppWithoutUninstall}
+                disabled={isUpdating}
+                className="w-full py-2.5 px-4 rounded-xl bg-sky-600 hover:bg-sky-500 disabled:opacity-60 text-white text-xs font-bold shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${isUpdating ? 'animate-spin' : ''}`} />
+                <span>
+                  {isUpdating ? 'Sedang Memperbarui & Membersihkan Cache...' : 'Perbarui Sekarang (Tanpa Uninstall)'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if ('caches' in window) {
+                    caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k))));
+                  }
+                  window.location.reload();
+                }}
+                className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+              >
+                <HardDrive className="w-3.5 h-3.5 text-slate-400" />
+                <span>Bersihkan Cache & Muat Ulang Halaman</span>
               </button>
             </div>
           </div>

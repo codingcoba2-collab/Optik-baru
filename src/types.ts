@@ -6,7 +6,8 @@ export type Role =
   | 'teknisi' 
   | 'host' 
   | 'admin' 
-  | 'faset';
+  | 'faset'
+  | 'consumer';
 
 export type UserType = 'seller' | 'consumer';
 
@@ -83,6 +84,7 @@ export interface Employee {
   username: string;
   password?: string;
   roles: Role[]; // bisa rangkap: owner, assisten, optisi, pelayan, teknisi
+  role?: Role;
   phone: string;
   active: boolean;
 
@@ -188,7 +190,10 @@ export type FasetStatus =
   | 'Fitting Frame' 
   | 'QC Akurasi' 
   | 'Selesai & Siap' 
-  | 'Reject Lab';
+  | 'Reject Lab'
+  | 'Selesai'
+  | 'Terkirim'
+  | 'Gagal/Reject';
 
 export interface FasetLabOrder {
   id: string;
@@ -245,6 +250,7 @@ export interface MarketplaceOrderItem {
   productId: string;
   productName: string;
   qty: number;
+  quantity?: number;
   price: number;
   selectedCategories?: LensCategoryType[];
   prescription?: {
@@ -257,22 +263,26 @@ export interface MarketplaceOrderItem {
 export interface MarketplaceOrder {
   id: string;
   orderNo: string;
+  orderNumber?: string;
   storeId: string;
   storeName: string;
   customerId: string;
   customerName: string;
+  buyerName?: string;
   customerPhone: string;
   shippingAddress: string;
+  courier?: CourierType | string;
+  shippingRateType?: ShippingRateType | string;
   items: MarketplaceOrderItem[];
   subtotal: number;
   discountAmount: number;
   shippingFee: number;
   totalAmount: number;
-  paymentMethod: 'cod' | 'bank_transfer' | 'qris';
+  paymentMethod: 'cod' | 'bank_transfer' | 'qris' | string;
   selectedBank?: 'BCA' | 'Mandiri' | 'BRI' | 'BNI' | 'Permata' | 'CIMB Niaga' | 'BSI';
   vaNumber?: string;
-  paymentStatus: 'menunggu_pembayaran' | 'terverifikasi';
-  orderStatus: 'menunggu_pembayaran' | 'diproses' | 'faset' | 'dikirim' | 'selesai' | 'dibatalkan';
+  paymentStatus: 'menunggu_pembayaran' | 'terverifikasi' | 'paid' | string;
+  orderStatus: 'menunggu_pembayaran' | 'diproses' | 'faset' | 'dikirim' | 'selesai' | 'dibatalkan' | 'waiting_confirmation' | 'in_lab' | 'shipped' | string;
   createdAt: string;
   paidAt?: string;
   transferProofUrl?: string;
@@ -295,6 +305,7 @@ export interface SaleItem {
   productId: string;
   productName: string;
   qty: number;
+  quantity?: number;
   price: number;
   hpp: number;
   isBundle?: boolean;
@@ -316,6 +327,7 @@ export interface SaleOrder {
   netRevenue: number;
   totalHpp: number;
   hostEmployeeId?: string;
+  hostId?: string;
   adminEmployeeId?: string;
   fasetTechnicianId?: string;
   notes?: string;
@@ -430,8 +442,21 @@ export interface AiEvaluationResult {
   score?: number;
   headline?: string;
   overallSummary?: string;
+  narrativeSummary?: string;
   strengths?: string[];
+  keyStrengths?: string[];
   improvements?: string[];
+  areasForImprovement?: string[];
   recommendations?: string[];
+  actionRecommendations?: string[];
   performanceGrade?: 'S' | 'A' | 'B' | 'C' | 'D';
+  efficiencyRatings?: {
+    productivity?: number;
+    salesContribution?: number;
+    discipline?: number;
+    opticalQc?: number;
+    fasetEfficiency?: number;
+    salesConversion?: number;
+    adRoi?: number;
+  };
 }

@@ -33,13 +33,13 @@ export const AiEvaluationModule: React.FC = () => {
   const lateDays = employeeAttendance.filter((a) => a.status === 'Terlambat').length;
   const totalLateMins = employeeAttendance.reduce((sum, a) => sum + (a.lateMinutes || 0), 0);
 
-  const hostSales = salesOrders.filter((s) => s.hostId === selectedEmployee?.id);
+  const hostSales = salesOrders.filter((s) => (s.hostEmployeeId || s.hostId) === selectedEmployee?.id);
   const totalHostRevenue = hostSales.reduce((sum, s) => sum + s.grossAmount, 0);
-  const totalHostPcs = hostSales.reduce((sum, s) => sum + s.items.reduce((iSum, item) => iSum + item.quantity, 0), 0);
+  const totalHostPcs = hostSales.reduce((sum, s) => sum + (s.items || []).reduce((iSum, item) => iSum + (item.qty || item.quantity || 1), 0), 0);
 
   const technicianFasetOrders = fasetOrders.filter((f) => f.technicianId === selectedEmployee?.id);
-  const completedFaset = technicianFasetOrders.filter((f) => f.status === 'Selesai' || f.status === 'Terkirim').length;
-  const rejectedFaset = technicianFasetOrders.filter((f) => f.status === 'Gagal/Reject').length;
+  const completedFaset = technicianFasetOrders.filter((f) => f.status === 'Selesai & Siap' || (f.status as any) === 'Selesai' || (f.status as any) === 'Terkirim').length;
+  const rejectedFaset = technicianFasetOrders.filter((f) => f.status === 'Reject Lab' || (f.status as any) === 'Gagal/Reject').length;
   const fasetSuccessRate = technicianFasetOrders.length > 0
     ? Math.round((completedFaset / technicianFasetOrders.length) * 100)
     : 100;

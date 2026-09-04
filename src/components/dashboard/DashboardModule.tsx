@@ -42,11 +42,11 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({ onNavigate }) 
   const [isLoadingAi, setIsLoadingAi] = useState(false);
 
   // Financial calculations
-  const totalGrossRevenue = salesOrders.reduce((sum, o) => sum + o.grossAmount, 0);
-  const totalMarketplaceFees = salesOrders.reduce((sum, o) => sum + o.marketplaceAdminFee + o.serviceFee, 0);
-  const totalHppSold = salesOrders.reduce((sum, o) => sum + o.totalHpp, 0);
-  const totalAdCost = adSpend.reduce((sum, a) => sum + a.adBudget + a.liveCoinSaweran, 0);
-  const totalExpenses = cashflow.filter((c) => c.type === 'out').reduce((sum, c) => sum + c.amount, 0);
+  const totalGrossRevenue = (salesOrders || []).reduce((sum, o) => sum + (o?.grossAmount || 0), 0);
+  const totalMarketplaceFees = (salesOrders || []).reduce((sum, o) => sum + (o?.marketplaceAdminFee || 0) + (o?.serviceFee || 0), 0);
+  const totalHppSold = (salesOrders || []).reduce((sum, o) => sum + (o?.totalHpp || 0), 0);
+  const totalAdCost = (adSpend || []).reduce((sum, a) => sum + (a?.adBudget || 0) + (a?.liveCoinSaweran || 0), 0);
+  const totalExpenses = (cashflow || []).filter((c) => c && c.type === 'out').reduce((sum, c) => sum + (c?.amount || 0), 0);
 
   // Net profit = Gross Revenue - Total Hpp - Marketplace Fees - Ad Cost - Lab/Operating Expenses
   const estimatedNetProfit = totalGrossRevenue - totalHppSold - totalMarketplaceFees - totalAdCost;
@@ -54,18 +54,18 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({ onNavigate }) 
 
   // Today metrics
   const todayStr = '2026-09-03';
-  const todaySales = salesOrders.filter((o) => o.date === todayStr);
-  const todayRevenue = todaySales.reduce((sum, o) => sum + o.grossAmount, 0);
-  const todayUnits = todaySales.reduce((sum, o) => sum + o.items.reduce((iSum, item) => iSum + item.qty, 0), 0);
+  const todaySales = (salesOrders || []).filter((o) => o && o.date === todayStr);
+  const todayRevenue = todaySales.reduce((sum, o) => sum + (o?.grossAmount || 0), 0);
+  const todayUnits = todaySales.reduce((sum, o) => sum + (Array.isArray(o?.items) ? o.items.reduce((iSum, item) => iSum + (item?.qty || 0), 0) : 0), 0);
 
   // Lab Faset Status
-  const fasetPending = fasetOrders.filter((f) => f.status === 'Antrean Lab').length;
-  const fasetInProcess = fasetOrders.filter((f) => f.status === 'Proses Faset' || f.status === 'Fitting Frame' || f.status === 'QC Akurasi').length;
-  const fasetCompleted = fasetOrders.filter((f) => f.status === 'Selesai & Siap').length;
-  const fasetRejected = fasetOrders.filter((f) => f.status === 'Reject Lab').length;
+  const fasetPending = (fasetOrders || []).filter((f) => f && f.status === 'Antrean Lab').length;
+  const fasetInProcess = (fasetOrders || []).filter((f) => f && (f.status === 'Proses Faset' || f.status === 'Fitting Frame' || f.status === 'QC Akurasi')).length;
+  const fasetCompleted = (fasetOrders || []).filter((f) => f && f.status === 'Selesai & Siap').length;
+  const fasetRejected = (fasetOrders || []).filter((f) => f && f.status === 'Reject Lab').length;
 
   // Low Stock Alerts
-  const lowStockProducts = products.filter((p) => p.stockQty <= p.minStockAlert);
+  const lowStockProducts = (products || []).filter((p) => p && p.stockQty <= (p.minStockAlert ?? 5));
 
   // Fetch AI Store Insight
   const handleFetchAiInsight = async () => {
@@ -75,7 +75,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({ onNavigate }) 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          storeName: store.name,
+          storeName: store?.name || 'Optik',
           revenueSummary: {
             totalGrossRevenue,
             estimatedNetProfit,
@@ -421,7 +421,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({ onNavigate }) 
                     {f.frameName} ({f.lensType})
                   </div>
                   <div className="text-[10px] text-sky-600 dark:text-sky-400 font-mono mt-0.5">
-                    R: {f.prescription.rightEye.sph} C{f.prescription.rightEye.cyl} A{f.prescription.rightEye.axis} | L: {f.prescription.leftEye.sph} C{f.prescription.leftEye.cyl}
+                    {f.prescription?.rightEye ? `R: ${f.prescription.rightEye.sph || '0'} C${f.prescription.rightEye.cyl || '0'} A${f.prescription.rightEye.axis || '0'}` : 'R: -'} | {f.prescription?.leftEye ? `L: ${f.prescription.leftEye.sph || '0'} C${f.prescription.leftEye.cyl || '0'}` : 'L: -'}
                   </div>
                 </div>
 
@@ -481,7 +481,7 @@ export const DashboardModule: React.FC<DashboardModuleProps> = ({ onNavigate }) 
                     </span>
                   </div>
                   <div className="text-[11px] text-slate-400 mt-0.5 truncate max-w-[220px]">
-                    {sale.items.map((i) => `${i.productName} (x${i.qty})`).join(', ')}
+                    {(sale.items || []).map((i) => `${i?.productName || 'Produk'} (x${i?.qty || 1})`).join(', ')}
                   </div>
                 </div>
 

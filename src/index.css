@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
+  html, body {
+    touch-action: pan-x pan-y pinch-zoom;
+    -webkit-text-size-adjust: 100%;
+  }
+
   :root {
     --bg-base: #f8fafc;
     --bg-surface: #ffffff;
@@ -138,8 +145,9 @@
 }
 
 body {
-  overflow-x: hidden;
   width: 100%;
+  min-height: 100vh;
+  touch-action: pan-x pan-y pinch-zoom;
 }
 
 @media print {

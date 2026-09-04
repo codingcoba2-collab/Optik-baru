@@ -117,8 +117,10 @@ interface AppContextType {
   removeFromCart: (productId: string) => void;
   clearCart: () => void;
   checkoutOrder: (orderData: Omit<MarketplaceOrder, 'id' | 'orderNo' | 'createdAt' | 'orderStatus' | 'paymentStatus'>) => Promise<{ success: boolean; order?: MarketplaceOrder; message?: string }>;
+  createMarketplaceOrder: (orderData: any) => Promise<any>;
   confirmPaymentTransfer: (orderId: string, proofNote?: string) => Promise<void>;
   updateMarketplaceOrderStatus: (orderId: string, status: MarketplaceOrder['orderStatus']) => Promise<void>;
+  isOnline: boolean;
 
   // Sales Orders (Penjualan Live & Toko)
   salesOrders: SaleOrder[];
@@ -223,6 +225,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     initial?.currentRole || 'owner'
   );
   const [sellerViewConsumerMode, setSellerViewConsumerMode] = useState<boolean>(false);
+  const [isOnline, setIsOnline] = useState<boolean>(typeof navigator !== 'undefined' ? navigator.onLine : true);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const isAuthenticated = currentUser !== null;
   const isSeller = currentUser?.userType === 'seller';
@@ -291,6 +305,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       root.classList.remove('dark');
     }
     root.setAttribute('data-palette', theme);
+
+    const paletteMap: Record<string, { primary: string; hover: string; soft: string }> = {
+      'Electric Ocean': { primary: '#0284c7', hover: '#0369a1', soft: 'rgba(2, 132, 199, 0.15)' },
+      'Neon Cyber': { primary: '#10b981', hover: '#059669', soft: 'rgba(16, 185, 129, 0.15)' },
+      'Emerald Mint': { primary: '#0d9488', hover: '#0f766e', soft: 'rgba(13, 148, 136, 0.15)' },
+      'Royal Violet': { primary: '#7c3aed', hover: '#6d28d9', soft: 'rgba(124, 58, 237, 0.15)' },
+      'Sunset Coral': { primary: '#f43f5e', hover: '#e11d48', soft: 'rgba(244, 63, 94, 0.15)' },
+      'Minimalist Studio': { primary: '#475569', hover: '#334155', soft: 'rgba(71, 85, 105, 0.15)' },
+    };
+
+    const p = paletteMap[theme] || paletteMap['Electric Ocean'];
+    root.style.setProperty('--accent-color', p.primary);
+    root.style.setProperty('--primary-accent', p.primary);
+    root.style.setProperty('--accent-hover', p.hover);
+    root.style.setProperty('--accent-soft', p.soft);
+
     localStorage.setItem('eyehub_dark', String(isDark));
     localStorage.setItem('eyehub_theme', theme);
   }, [isDark, theme]);
@@ -1013,6 +1043,37 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true, order: newOrder };
   };
 
+  const createMarketplaceOrder = async (orderData: any) => {
+    const standardizedItems: MarketplaceOrderItem[] = (orderData.items || []).map((it: any) => ({
+      productId: it.productId,
+      productName: it.productName,
+      qty: it.quantity || it.qty || 1,
+      quantity: it.quantity || it.qty || 1,
+      price: it.price,
+      selectedCategories: it.lensCategories,
+      prescription: it.prescription
+    }));
+
+    return checkoutOrder({
+      storeId: orderData.storeId,
+      storeName: orderData.storeName || store.name,
+      customerId: orderData.buyerId || orderData.customerId || 'buyer',
+      customerName: orderData.buyerName || orderData.customerName || 'Pembeli',
+      buyerName: orderData.buyerName || orderData.customerName || 'Pembeli',
+      customerPhone: orderData.buyerPhone || orderData.customerPhone || '-',
+      shippingAddress: orderData.shippingAddress || '-',
+      items: standardizedItems,
+      subtotal: orderData.subtotal,
+      discountAmount: orderData.discountAmount || 0,
+      shippingFee: orderData.shippingCost || orderData.shippingFee || 0,
+      totalAmount: orderData.totalAmount,
+      paymentMethod: orderData.paymentMethod?.toLowerCase() === 'transfer' ? 'bank_transfer' : orderData.paymentMethod?.toLowerCase() === 'qris' ? 'qris' : 'cod',
+      selectedBank: orderData.selectedBank,
+      courier: orderData.courier,
+      shippingRateType: orderData.shippingRateType
+    });
+  };
+
   const confirmPaymentTransfer = async (orderId: string, proofNote?: string) => {
     const order = marketplaceOrders.find((o) => o.id === orderId);
     if (!order) return;
@@ -1279,8 +1340,10 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         removeFromCart,
         clearCart,
         checkoutOrder,
+        createMarketplaceOrder,
         confirmPaymentTransfer,
         updateMarketplaceOrderStatus,
+        isOnline,
 
         salesOrders,
         addSaleOrder,
