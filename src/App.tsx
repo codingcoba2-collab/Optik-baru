@@ -21,6 +21,7 @@ import { UpdateModule } from './components/update/UpdateModule';
 import { EducationModule } from './components/education/EducationModule';
 import { ConsumerPortal } from './components/consumer/ConsumerPortal';
 import { SellerOrderManagementModule } from './components/orders/SellerOrderManagementModule';
+import { VirtualAccountModal } from './components/payment/VirtualAccountModal';
 import {
   LayoutDashboard,
   Glasses,
@@ -53,7 +54,9 @@ const AppContent: React.FC = () => {
     isAuthenticated,
     userProfile,
     isDark,
-    setIsDark
+    setIsDark,
+    activePaymentModal,
+    setActivePaymentModal
   } = useApp();
   const isConsumer = userProfile?.role === 'consumer' || userProfile?.userType === 'consumer';
   const isOwner = currentRole === 'owner' || currentUser?.role === 'owner' || (Array.isArray(currentUser?.roles) && currentUser.roles.includes('owner'));
@@ -339,6 +342,11 @@ const AppContent: React.FC = () => {
       </div>
 
       {/* Global Modals & Toast Notifications */}
+      <VirtualAccountModal
+        isOpen={Boolean(activePaymentModal)}
+        transaction={activePaymentModal}
+        onClose={() => setActivePaymentModal(null)}
+      />
       <ToastContainer />
       <PwaInstallModal isOpen={isPwaModalOpen} onClose={() => setIsPwaModalOpen(false)} />
     </div>

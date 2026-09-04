@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   StoreAccount,
   Employee,
@@ -17,6 +17,7 @@ import {
   DiscountCoupon,
   MarketplaceOrder,
   MarketplaceOrderItem,
+  PaymentTransaction,
   UserAccount,
   UserType,
   HomeVisitRequest,
@@ -124,6 +125,14 @@ interface AppContextType {
   confirmPaymentTransfer: (orderId: string, proofNote?: string) => Promise<void>;
   updateMarketplaceOrderStatus: (orderId: string, status: MarketplaceOrder['orderStatus']) => Promise<void>;
   cancelMarketplaceOrder: (orderId: string, cancelReason?: string) => Promise<void>;
+
+  // Payment Gateway Virtual Account
+  paymentTransactions: PaymentTransaction[];
+  activePaymentModal: PaymentTransaction | null;
+  setActivePaymentModal: (tx: PaymentTransaction | null) => void;
+  createVirtualAccountPayment: (orderData: any, bankCode: string) => Promise<{ success: boolean; transaction?: PaymentTransaction; error?: string }>;
+  checkPaymentStatus: (orderId: string) => Promise<PaymentTransaction | null>;
+  simulatePaymentWebhook: (orderId: string, action?: 'settlement' | 'expire' | 'cancel') => Promise<{ success: boolean; message: string }>;
 
   // Home Visit Service (Layanan Periksa Mata ke Rumah)
   homeVisitRequests: HomeVisitRequest[];
@@ -271,6 +280,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [marketplaceOrders, setMarketplaceOrders] = useState<MarketplaceOrder[]>(
     initial?.marketplaceOrders || INITIAL_MARKETPLACE_ORDERS
   );
+  const [paymentTransactions, setPaymentTransactions] = useState<PaymentTransaction[]>(() => {
+    try {
+      const saved = localStorage.getItem('eyehub_payments');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return [];
+  });
+  const [activePaymentModal, setActivePaymentModal] = useState<PaymentTransaction | null>(null);
+  const processedPaymentDeductions = useRef<Set<string>>(new Set<string>());
   const [homeVisitRequests, setHomeVisitRequests] = useState<HomeVisitRequest[]>(() => {
     try {
       const saved = localStorage.getItem('eyehub_home_visits');
@@ -532,10 +550,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         }
       }, (err) => console.warn('Firestore orders sync offline:', err));
 
+      // Listen to payments
+      const unsubPayments = onSnapshot(collection(db, 'payments'), (snapshot) => {
+        if (!snapshot.empty) {
+          const remotePayments = snapshot.docs.map(d => d.data() as PaymentTransaction);
+          setPaymentTransactions(remotePayments);
+        }
+      }, (err) => console.warn('Firestore payments sync offline:', err));
+
       return () => {
         unsubStores();
         unsubProducts();
         unsubOrders();
+        unsubPayments();
       };
     } catch (err) {
       console.warn('Firestore real-time listeners initialization notice:', err);
@@ -1292,6 +1319,161 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast(`Pesanan #${order.orderNo} berhasil dibatalkan.`, 'info');
   };
 
+  // --- Payment Gateway Virtual Account Handlers ---
+  const createVirtualAccountPayment = async (orderData: any, bankCode: string) => {
+    try {
+      const orderId = orderData.id || ('ord-' + Date.now().toString(36));
+      const orderNo = orderData.orderNo || ('INV-' + new Date().getFullYear() + '-' + Math.floor(100000 + Math.random() * 900000));
+
+      const standardizedItems: MarketplaceOrderItem[] = (orderData.items || []).map((it: any) => ({
+        productId: it.productId,
+        productName: it.productName,
+        qty: it.quantity || it.qty || 1,
+        quantity: it.quantity || it.qty || 1,
+        price: it.price,
+        image: it.image || it.imageUrl,
+        storeId: it.storeId,
+        storeName: it.storeName,
+        selectedCategories: it.lensCategories || it.selectedCategories,
+        prescription: it.prescription
+      }));
+
+      const response = await fetch('/api/payment/create-va', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          orderNo,
+          customerId: orderData.customerId || orderData.buyerId || currentUser?.id || 'cust-' + Date.now(),
+          customerName: orderData.customerName || orderData.buyerName || currentUser?.fullName || currentUser?.username || 'Pelanggan Optik',
+          customerPhone: orderData.customerPhone || orderData.buyerPhone || currentUser?.phone || '-',
+          customerEmail: currentUser?.email || 'pelanggan@eyehub.id',
+          amount: orderData.totalAmount,
+          bankCode,
+          items: standardizedItems
+        })
+      });
+
+      if (!response.ok) {
+        const errJson = await response.json().catch(() => ({}));
+        throw new Error(errJson.message || errJson.error || 'Gagal membuat Virtual Account');
+      }
+
+      const resData = await response.json();
+      const transaction: PaymentTransaction = resData.transaction;
+
+      const newOrder: MarketplaceOrder = {
+        ...orderData,
+        id: orderId,
+        orderNo,
+        items: standardizedItems,
+        paymentMethod: 'Virtual Account',
+        selectedBank: transaction.bankCode.toUpperCase() as any,
+        bankCode: transaction.bankCode,
+        bankName: transaction.bankName,
+        vaNumber: transaction.virtualAccountNumber,
+        virtualAccountNumber: transaction.virtualAccountNumber,
+        paymentId: transaction.paymentId,
+        paymentStatus: 'PENDING',
+        orderStatus: 'MENUNGGU PEMBAYARAN',
+        expiredAt: transaction.expiredAt,
+        createdAt: new Date().toISOString()
+      };
+
+      setMarketplaceOrders((prev) => [newOrder, ...prev.filter(o => o.id !== orderId)]);
+      setPaymentTransactions((prev) => [transaction, ...prev.filter(t => t.paymentId !== transaction.paymentId)]);
+      clearCart();
+
+      try {
+        await setDoc(doc(db, 'orders', orderId), newOrder);
+        await setDoc(doc(db, 'payments', transaction.paymentId), transaction);
+      } catch (e) {
+        console.warn('Firestore order and payment sync notice:', e);
+      }
+
+      setActivePaymentModal(transaction);
+      showToast(`Nomor Virtual Account ${transaction.bankCode.toUpperCase()} berhasil dibuat! Silakan transfer sebelum batas waktu.`, 'success');
+
+      return { success: true, transaction };
+    } catch (err: any) {
+      console.error('Error creating virtual account payment:', err);
+      showToast(err.message || 'Gagal membuat transaksi Virtual Account', 'error');
+      return { success: false, error: err.message };
+    }
+  };
+
+  const checkPaymentStatus = async (orderId: string): Promise<PaymentTransaction | null> => {
+    try {
+      const response = await fetch(`/api/payment/status/${orderId}`);
+      if (!response.ok) return null;
+      const data = await response.json();
+      const tx: PaymentTransaction = data.transaction;
+
+      if (tx) {
+        setPaymentTransactions((prev) => [tx, ...prev.filter(t => t.orderId !== orderId)]);
+
+        if (tx.paymentStatus === 'PAID') {
+          const targetOrder = marketplaceOrders.find(o => o.id === orderId);
+          if (targetOrder && targetOrder.paymentStatus !== 'PAID') {
+            const updatedOrder: MarketplaceOrder = {
+              ...targetOrder,
+              paymentStatus: 'PAID',
+              orderStatus: 'DIKONFIRMASI',
+              paidAt: tx.paidAt || new Date().toISOString(),
+              paymentId: tx.paymentId
+            };
+
+            setMarketplaceOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+
+            if (!processedPaymentDeductions.current.has(orderId)) {
+              processedPaymentDeductions.current.add(orderId);
+              for (const item of targetOrder.items) {
+                const q = (item as any).quantity || item.qty || 1;
+                await adjustStock(item.productId, -q);
+              }
+              showToast(`Pembayaran #${targetOrder.orderNo} LUNAS via Gateway! Pesanan dikonfirmasi & stok dialokasikan.`, 'success');
+            }
+
+            try {
+              await setDoc(doc(db, 'orders', orderId), updatedOrder, { merge: true });
+              await setDoc(doc(db, 'payments', tx.paymentId), tx, { merge: true });
+            } catch (e) {
+              console.warn('Firestore update order/payment notice:', e);
+            }
+          }
+        }
+        return tx;
+      }
+      return null;
+    } catch (err) {
+      console.warn('checkPaymentStatus error:', err);
+      return null;
+    }
+  };
+
+  const simulatePaymentWebhook = async (orderId: string, action: 'settlement' | 'expire' | 'cancel' = 'settlement') => {
+    try {
+      const response = await fetch('/api/payment/simulate-webhook', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderId, action })
+      });
+
+      const res = await response.json();
+      if (res.success) {
+        await checkPaymentStatus(orderId);
+        showToast(res.message || 'Webhook simulasi berhasil dikirim', 'success');
+        return { success: true, message: res.message };
+      } else {
+        showToast(res.message || 'Gagal memproses simulasi webhook', 'error');
+        return { success: false, message: res.message };
+      }
+    } catch (err: any) {
+      showToast(`Error simulasi webhook: ${err.message}`, 'error');
+      return { success: false, message: err.message };
+    }
+  };
+
   // --- Home Visit Service Handlers ---
   const addHomeVisitRequest = async (data: Omit<HomeVisitRequest, 'id' | 'requestNo' | 'createdAt' | 'status'>) => {
     const id = 'hvr-' + Date.now().toString(36);
@@ -1536,6 +1718,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         confirmPaymentTransfer,
         updateMarketplaceOrderStatus,
         cancelMarketplaceOrder,
+
+        // Payment Gateway Virtual Account
+        paymentTransactions,
+        activePaymentModal,
+        setActivePaymentModal,
+        createVirtualAccountPayment,
+        checkPaymentStatus,
+        simulatePaymentWebhook,
+
         homeVisitRequests,
         addHomeVisitRequest,
         updateHomeVisitStatus,

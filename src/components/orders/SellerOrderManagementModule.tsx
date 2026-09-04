@@ -271,9 +271,33 @@ export const SellerOrderManagementModule: React.FC = () => {
                           <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0 mt-0.5" />
                           <span className="line-clamp-2">{order.shippingAddress || 'Alamat tidak dicantumkan'}</span>
                         </div>
-                        <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] text-slate-500">
-                          <span className="font-semibold text-slate-700 dark:text-slate-300">Pengiriman: </span>
-                          <span>Kurir Toko Sekitar ({formatRupiah(order.shippingFee || store.localDeliveryFee || 10000)})</span>
+                        <div className="pt-1.5 border-t border-slate-200 dark:border-slate-700 text-[11px] space-y-1">
+                          <div className="text-slate-500">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">Pengiriman: </span>
+                            <span>Kurir Toko Sekitar ({formatRupiah(order.shippingFee || store.localDeliveryFee || 10000)})</span>
+                          </div>
+                          <div className="text-slate-500">
+                            <span className="font-semibold text-slate-700 dark:text-slate-300">Pembayaran: </span>
+                            <span>{order.paymentMethod || 'Transfer'}</span>
+                          </div>
+                          {(order.paymentMethod === 'Virtual Account' || order.vaNumber || order.virtualAccountNumber) && (
+                            <div className="p-2 rounded-lg bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-900/40 text-[10px] space-y-0.5">
+                              <div className="font-bold text-sky-800 dark:text-sky-300">
+                                VA {order.bankName || (order.selectedBank ? `Bank ${order.selectedBank}` : 'Virtual Account')}
+                              </div>
+                              <div className="font-mono text-sky-700 dark:text-sky-400 font-bold">
+                                {order.virtualAccountNumber || order.vaNumber || '-'}
+                              </div>
+                              <div className="flex items-center gap-1 font-semibold">
+                                <span>Status Gateway: </span>
+                                {order.paymentStatus === 'PAID' ? (
+                                  <span className="text-emerald-600 dark:text-emerald-400">LUNAS (Terverifikasi)</span>
+                                ) : (
+                                  <span className="text-amber-600 dark:text-amber-400">Menunggu Webhook</span>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
 

@@ -44,7 +44,10 @@ export const MarketplaceModule: React.FC = () => {
     adsCampaigns,
     userProfile,
     store,
-    showToast
+    showToast,
+    createVirtualAccountPayment,
+    setActivePaymentModal,
+    paymentTransactions
   } = useApp();
 
   const [activeTab, setActiveTab] = useState<'shop' | 'orders'>('shop');
@@ -67,7 +70,8 @@ export const MarketplaceModule: React.FC = () => {
   // Shipping & Payment Form
   const [deliveryMethod, setDeliveryMethod] = useState<'kurir_toko' | 'pickup'>('kurir_toko');
   const [deliveryFee, setDeliveryFee] = useState<number>(store.localDeliveryFee || 10000);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('QRIS');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('Transfer');
+  const [selectedBank, setSelectedBank] = useState<string>('bri');
   const [appliedCouponCode, setAppliedCouponCode] = useState<string>('');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
 
@@ -144,6 +148,45 @@ export const MarketplaceModule: React.FC = () => {
           lensTypeRequested: cartProduct.name
         }
       : undefined;
+
+    if (paymentMethod === 'Transfer') {
+      const orderPayload = {
+        storeId: cartProduct.storeId,
+        storeName: cartProduct.storeName || store.name,
+        customerId: userProfile?.uid || 'buyer-consumer',
+        customerName: recipientName,
+        customerPhone: recipientPhone,
+        shippingAddress: recipientAddress,
+        items: [
+          {
+            productId: cartProduct.id,
+            productName: cartProduct.name,
+            sku: cartProduct.sku,
+            price: cartProduct.sellingPrice,
+            quantity,
+            qty: quantity,
+            subtotal,
+            lensCategories: cartProduct.lensCategories,
+            prescription: prescriptionData
+          }
+        ],
+        subtotal,
+        shippingFee: calculatedShippingCost,
+        discountAmount,
+        totalAmount: grandTotal,
+        courier: deliveryMethod === 'kurir_toko' ? 'Kurir Toko' : 'Ambil di Toko',
+        shippingRateType: 'manual',
+        paymentMethod: 'Virtual Account',
+        selectedBank: selectedBank.toUpperCase() as any
+      };
+
+      const res = await createVirtualAccountPayment(orderPayload, selectedBank);
+      if (res.success) {
+        setIsCheckoutOpen(false);
+        setActiveTab('orders');
+      }
+      return;
+    }
 
     await createMarketplaceOrder({
       storeId: cartProduct.storeId,
@@ -456,15 +499,52 @@ export const MarketplaceModule: React.FC = () => {
                     <div className="text-base font-black text-emerald-400">
                       {formatRupiah(ord.totalAmount)}
                     </div>
-                    <span className="inline-block mt-1 text-[10px] px-2 py-0.5 rounded font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
-                      {ord.orderStatus === 'waiting_confirmation' || ord.orderStatus === 'menunggu_pembayaran'
-                        ? 'Menunggu Konfirmasi'
-                        : ord.orderStatus === 'in_lab' || ord.orderStatus === 'faset'
-                        ? 'Proses Lab Faset'
-                        : ord.orderStatus === 'shipped' || ord.orderStatus === 'dikirim'
-                        ? 'Sedang Dikirim'
-                        : 'Selesai'}
-                    </span>
+                    <div className="flex items-center justify-end gap-1.5 mt-1.5">
+                      <span className="inline-block text-[10px] px-2 py-0.5 rounded font-bold bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                        {ord.paymentStatus === 'PAID' ? 'LUNAS (Gateway)' : (ord.orderStatus === 'waiting_confirmation' || ord.orderStatus === 'menunggu_pembayaran'
+                          ? 'Menunggu Pembayaran'
+                          : ord.orderStatus === 'in_lab' || ord.orderStatus === 'faset'
+                          ? 'Proses Lab Faset'
+                          : ord.orderStatus === 'shipped' || ord.orderStatus === 'dikirim'
+                          ? 'Sedang Dikirim'
+                          : 'Selesai')}
+                      </span>
+                      {(ord.paymentMethod === 'Virtual Account' || ord.vaNumber || ord.virtualAccountNumber) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const matchedTx = paymentTransactions.find((t) => t.orderId === ord.id);
+                            if (matchedTx) {
+                              setActivePaymentModal(matchedTx);
+                            } else {
+                              setActivePaymentModal({
+                                paymentId: ord.paymentId || ('pay-' + ord.id),
+                                orderId: ord.id,
+                                orderNo: ord.orderNo || ord.orderNumber || 'ORD-' + ord.id,
+                                customerId: ord.customerId || 'cust-user',
+                                customerName: ord.customerName || 'Konsumen',
+                                customerPhone: ord.customerPhone || '-',
+                                amount: ord.totalAmount,
+                                paymentMethod: 'Virtual Account',
+                                bankCode: (ord.bankCode || ord.selectedBank || 'bri').toLowerCase(),
+                                bankName: ord.bankName || (ord.selectedBank ? `Bank ${ord.selectedBank}` : 'Bank Virtual Account'),
+                                virtualAccountNumber: ord.virtualAccountNumber || ord.vaNumber || '8801' + Math.floor(1000000000 + Math.random() * 9000000000),
+                                paymentStatus: ord.paymentStatus === 'PAID' ? 'PAID' : (ord.paymentStatus === 'EXPIRED' ? 'EXPIRED' : 'PENDING'),
+                                orderStatus: (ord.paymentStatus === 'PAID' ? 'DIKONFIRMASI' : (ord.paymentStatus === 'EXPIRED' ? 'KADALUARSA' : 'MENUNGGU PEMBAYARAN')),
+                                expiredAt: ord.expiredAt || new Date(Date.now() + 86400000).toISOString(),
+                                createdAt: ord.createdAt,
+                                updatedAt: ord.createdAt,
+                                paidAt: ord.paidAt || null
+                              });
+                            }
+                          }}
+                          className="text-[10px] px-2 py-0.5 rounded font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 hover:bg-indigo-500/30 cursor-pointer flex items-center gap-1"
+                        >
+                          <CreditCard className="w-3 h-3" />
+                          <span>VA Online</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -721,8 +801,8 @@ export const MarketplaceModule: React.FC = () => {
                     }`}
                   >
                     <CreditCard className="w-5 h-5 text-sky-400" />
-                    <span className="font-bold text-xs">Transfer Bank</span>
-                    <span className="text-[10px] text-slate-400">BCA / Mandiri / BRI</span>
+                    <span className="font-bold text-xs">Virtual Account</span>
+                    <span className="text-[10px] text-sky-400 font-medium">Auto Verifikasi</span>
                   </button>
 
                   <button
@@ -741,8 +821,42 @@ export const MarketplaceModule: React.FC = () => {
                 </div>
 
                 {paymentMethod === 'Transfer' && (
-                  <div className="p-2.5 rounded-lg bg-sky-950/40 border border-sky-800/40 text-[11px] text-sky-200">
-                    Rekening Toko: <strong>BCA 872-019-2311</strong> a/n OpticHub Store. Konfirmasi otomatis.
+                  <div className="p-3 rounded-xl bg-slate-900 border border-sky-800/60 space-y-2.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-sky-300">Pilih Bank Virtual Account</span>
+                      <span className="text-[10px] text-slate-400">Gateway Terverifikasi</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {[
+                        { code: 'bri', name: 'Bank BRI' },
+                        { code: 'bca', name: 'Bank BCA' },
+                        { code: 'bni', name: 'Bank BNI' },
+                        { code: 'mandiri', name: 'Mandiri' },
+                        { code: 'permata', name: 'Permata' },
+                        { code: 'cimb', name: 'CIMB Niaga' },
+                        { code: 'bsi', name: 'BSI' },
+                        { code: 'danamon', name: 'Danamon' }
+                      ].map((b) => (
+                        <button
+                          key={b.code}
+                          type="button"
+                          onClick={() => setSelectedBank(b.code)}
+                          className={`p-2 rounded-lg text-xs font-bold border transition-all cursor-pointer text-center ${
+                            selectedBank.toLowerCase() === b.code
+                              ? 'bg-sky-600 border-sky-500 text-white shadow-sm'
+                              : 'bg-slate-800 border-slate-700 text-slate-300 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="font-mono text-xs">{b.name}</div>
+                          <div className="text-[9px] uppercase tracking-wider opacity-75 mt-0.5">VA Online</div>
+                        </button>
+                      ))}
+                    </div>
+
+                    <p className="text-[11px] text-slate-400 leading-relaxed">
+                      Sistem payment gateway backend akan otomatis membuat nomor VA unik untuk transaksi ini.
+                    </p>
                   </div>
                 )}
 

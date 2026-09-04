@@ -52,6 +52,9 @@ export const ConsumerPortal: React.FC = () => {
     checkoutOrder,
     marketplaceOrders,
     cancelMarketplaceOrder,
+    createVirtualAccountPayment,
+    setActivePaymentModal,
+    paymentTransactions,
     homeVisitRequests,
     addHomeVisitRequest,
     cancelHomeVisitRequest,
@@ -80,8 +83,8 @@ export const ConsumerPortal: React.FC = () => {
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [shippingAddress, setShippingAddress] = useState('Jl. Kenanga No. 12, Kelurahan Sukajadi, RT 02 / RW 05');
   const [receiverPhone, setReceiverPhone] = useState(currentUser?.phone || '081298765432');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'bank_transfer' | 'qris'>('bank_transfer');
-  const [selectedBank, setSelectedBank] = useState<'BCA' | 'Mandiri' | 'BRI'>('BCA');
+  const [paymentMethod, setPaymentMethod] = useState<'bank_transfer' | 'qris' | 'cod'>('bank_transfer');
+  const [selectedBank, setSelectedBank] = useState<string>('bri');
 
   // Home Visit Form State
   const [hvStoreId, setHvStoreId] = useState<string>(allStores[0]?.id || store.id);
@@ -206,11 +209,21 @@ export const ConsumerPortal: React.FC = () => {
       discountAmount: 0,
       shippingFee: deliveryFee,
       totalAmount: checkoutTotal,
-      paymentMethod: paymentMethod,
-      selectedBank: paymentMethod === 'bank_transfer' ? selectedBank : undefined,
+      paymentMethod: paymentMethod === 'bank_transfer' ? 'Virtual Account' : paymentMethod,
+      selectedBank: paymentMethod === 'bank_transfer' ? (selectedBank.toUpperCase() as any) : undefined,
       courier: 'Kurir Toko',
       shippingRateType: 'Kurir Toko Sekitar'
     };
+
+    if (paymentMethod === 'bank_transfer') {
+      const res = await createVirtualAccountPayment(orderPayload, selectedBank);
+      if (res.success) {
+        setIsCheckoutOpen(false);
+        setIsCartOpen(false);
+        setActiveTab('my_orders');
+      }
+      return;
+    }
 
     const res = await checkoutOrder(orderPayload);
     if (res.success) {
@@ -921,19 +934,57 @@ export const ConsumerPortal: React.FC = () => {
                           <span className="ml-2 text-[11px] text-slate-400">({order.paymentMethod.toUpperCase()})</span>
                         </div>
 
-                        {/* Consumer cancellation action: Allowed if not completed & not cancelled */}
-                        {!isDone && !isCancelled && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm('Batalkan pesanan ini?')) {
-                                cancelMarketplaceOrder(order.id, 'Dibatalkan oleh konsumen');
-                              }
-                            }}
-                            className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-bold transition-colors cursor-pointer"
-                          >
-                            Batalkan Pesanan
-                          </button>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {(order.paymentMethod === 'Virtual Account' || order.vaNumber || order.virtualAccountNumber) && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const matchedTx = paymentTransactions.find((t) => t.orderId === order.id);
+                                if (matchedTx) {
+                                  setActivePaymentModal(matchedTx);
+                                } else {
+                                  setActivePaymentModal({
+                                    paymentId: order.paymentId || ('pay-' + order.id),
+                                    orderId: order.id,
+                                    orderNo: order.orderNo,
+                                    customerId: order.customerId,
+                                    customerName: order.customerName,
+                                    customerPhone: order.customerPhone,
+                                    amount: order.totalAmount,
+                                    paymentMethod: 'Virtual Account',
+                                    bankCode: (order.bankCode || order.selectedBank || 'bri').toLowerCase(),
+                                    bankName: order.bankName || (order.selectedBank ? `Bank ${order.selectedBank}` : 'Bank Virtual Account'),
+                                    virtualAccountNumber: order.virtualAccountNumber || order.vaNumber || '8801' + Math.floor(1000000000 + Math.random() * 9000000000),
+                                    paymentStatus: order.paymentStatus === 'PAID' ? 'PAID' : (order.paymentStatus === 'EXPIRED' ? 'EXPIRED' : 'PENDING'),
+                                    orderStatus: (order.paymentStatus === 'PAID' ? 'DIKONFIRMASI' : (order.paymentStatus === 'EXPIRED' ? 'KADALUARSA' : 'MENUNGGU PEMBAYARAN')),
+                                    expiredAt: order.expiredAt || new Date(Date.now() + 86400000).toISOString(),
+                                    createdAt: order.createdAt,
+                                    updatedAt: order.createdAt,
+                                    paidAt: order.paidAt || null
+                                  });
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-sky-50 dark:bg-sky-950/50 hover:bg-sky-100 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800 text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
+                            >
+                              <CreditCard className="w-3.5 h-3.5 text-sky-600" />
+                              <span>Virtual Account {order.paymentStatus === 'PAID' ? '(Lunas)' : ''}</span>
+                            </button>
+                          )}
+
+                          {/* Consumer cancellation action: Allowed if not completed & not cancelled */}
+                          {!isDone && !isCancelled && (
+                            <button
+                              onClick={() => {
+                                if (window.confirm('Batalkan pesanan ini?')) {
+                                  cancelMarketplaceOrder(order.id, 'Dibatalkan oleh konsumen');
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl border border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-xs font-bold transition-colors cursor-pointer"
+                            >
+                              Batalkan Pesanan
+                            </button>
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -1341,52 +1392,68 @@ export const ConsumerPortal: React.FC = () => {
                 </label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: 'bank_transfer', label: 'Transfer VA Bank' },
-                    { id: 'qris', label: 'QRIS Scan' },
-                    { id: 'cod', label: 'COD (Bayar di Tempat)' }
+                    { id: 'bank_transfer', label: 'Virtual Account', sub: 'Otomatis Realtime' },
+                    { id: 'qris', label: 'QRIS Scan', sub: 'Scan QR Code' },
+                    { id: 'cod', label: 'COD', sub: 'Bayar di Tempat' }
                   ].map((m) => (
                     <button
                       key={m.id}
                       type="button"
                       onClick={() => setPaymentMethod(m.id as any)}
-                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
+                      className={`p-2.5 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center ${
                         paymentMethod === m.id
-                          ? 'border-sky-600 bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300'
-                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400'
+                          ? 'border-sky-600 bg-sky-50 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 shadow-xs'
+                          : 'border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-300'
                       }`}
                     >
-                      {m.label}
+                      <div>{m.label}</div>
+                      <div className="text-[10px] font-normal opacity-80 mt-0.5">{m.sub}</div>
                     </button>
                   ))}
                 </div>
               </div>
 
               {paymentMethod === 'bank_transfer' && (
-                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 space-y-1.5">
-                  <label className="block text-[11px] font-bold text-slate-600 dark:text-slate-300">
-                    Pilih Bank Rekening Toko
-                  </label>
-                  <div className="flex gap-2">
-                    {['BCA', 'Mandiri', 'BRI'].map((b) => (
+                <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/90 border border-slate-200 dark:border-slate-750 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-800 dark:text-slate-200">
+                      Pilih Bank Virtual Account (Payment Gateway)
+                    </label>
+                    <span className="text-[10px] text-sky-600 dark:text-sky-400 font-semibold">
+                      Verifikasi Otomatis
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {[
+                      { code: 'bri', name: 'Bank BRI' },
+                      { code: 'bca', name: 'Bank BCA' },
+                      { code: 'bni', name: 'Bank BNI' },
+                      { code: 'mandiri', name: 'Mandiri' },
+                      { code: 'permata', name: 'Permata' },
+                      { code: 'cimb', name: 'CIMB Niaga' },
+                      { code: 'bsi', name: 'BSI' },
+                      { code: 'danamon', name: 'Danamon' }
+                    ].map((b) => (
                       <button
-                        key={b}
+                        key={b.code}
                         type="button"
-                        onClick={() => setSelectedBank(b as any)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                          selectedBank === b
-                            ? 'bg-sky-600 text-white'
-                            : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
+                        onClick={() => setSelectedBank(b.code)}
+                        className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer text-center flex flex-col items-center justify-center ${
+                          selectedBank.toLowerCase() === b.code
+                            ? 'bg-sky-600 border-sky-600 text-white shadow-sm'
+                            : 'bg-white dark:bg-slate-700/70 border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 hover:border-sky-400'
                         }`}
                       >
-                        {b}
+                        <span className="font-mono text-xs">{b.name}</span>
+                        <span className="text-[9px] uppercase tracking-wider opacity-80 mt-0.5">VA Online</span>
                       </button>
                     ))}
                   </div>
-                  {activeSellerObj.bankAccountNumber && (
-                    <div className="text-[11px] text-slate-500 pt-1">
-                      No Rekening {activeSellerObj.bankName || selectedBank}: <span className="font-mono font-bold text-slate-800 dark:text-slate-200">{activeSellerObj.bankAccountNumber}</span> a/n {activeSellerObj.bankAccountHolder || activeSellerObj.name}
-                    </div>
-                  )}
+
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed pt-1">
+                    Nomor Virtual Account unik akan di-generate otomatis oleh sistem backend payment gateway setelah Anda mengonfirmasi pesanan.
+                  </p>
                 </div>
               )}
 

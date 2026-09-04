@@ -86,6 +86,27 @@
         "createdAt": { "type": "string" }
       },
       "required": ["id", "orderNo", "storeId", "customerId", "totalAmount"]
+    },
+    "PaymentTransaction": {
+      "title": "PaymentTransaction",
+      "description": "Transaksi pembayaran online Virtual Account melalui payment gateway",
+      "type": "object",
+      "properties": {
+        "paymentId": { "type": "string" },
+        "orderId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "amount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "bankCode": { "type": "string" },
+        "virtualAccountNumber": { "type": "string" },
+        "paymentStatus": { "type": "string", "enum": ["PENDING", "PAID", "EXPIRED", "FAILED"] },
+        "orderStatus": { "type": "string", "enum": ["MENUNGGU PEMBAYARAN", "DIKONFIRMASI", "KADALUARSA", "DIBATALKAN"] },
+        "expiredAt": { "type": "string" },
+        "paidAt": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["paymentId", "orderId", "customerId", "amount", "paymentMethod", "bankCode", "virtualAccountNumber", "paymentStatus", "orderStatus", "expiredAt", "createdAt", "updatedAt"]
     }
   },
   "firestore": {
@@ -108,6 +129,10 @@
     "/orders/{orderId}": {
       "schema": { "$ref": "Order" },
       "description": "Pesanan penjualan marketplace"
+    },
+    "/payments/{paymentId}": {
+      "schema": { "$ref": "PaymentTransaction" },
+      "description": "Transaksi Virtual Account dan status verifikasi gateway"
     }
   }
 }

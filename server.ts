@@ -2,6 +2,13 @@ import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
+import {
+  SUPPORTED_BANKS,
+  getGatewayConfig,
+  createVirtualAccountTransaction,
+  processPaymentWebhook,
+  paymentTransactions
+} from './server/paymentGateway';
 
 async function startServer() {
   const app = express();
@@ -19,6 +26,174 @@ async function startServer() {
   // Health Check
   app.get('/api/health', (req, res) => {
     res.json({ status: 'ok', app: 'eye hub - Optical Commerce' });
+  });
+
+  // --- Payment Gateway Virtual Account Endpoints ---
+
+  // 1. Get Supported Banks List
+  app.get('/api/payment/banks', (req, res) => {
+    const list = Object.values(SUPPORTED_BANKS).map((b) => ({
+      code: b.code,
+      name: b.name,
+      shortName: b.shortName,
+      logo: b.logo,
+      color: b.color,
+      description: b.description
+    }));
+    res.json({ banks: list });
+  });
+
+  // 2. Check Payment Gateway Credentials Status
+  app.get('/api/payment/config-status', (req, res) => {
+    const config = getGatewayConfig();
+    res.json({
+      provider: config.provider,
+      isConfigured: config.isConfigured,
+      isProduction: config.isProduction,
+      merchantIdConfigured: Boolean(config.merchantId),
+      helpMessage: config.isConfigured
+        ? `Payment Gateway (${config.provider.toUpperCase()}) aktif dan siap menerima pembayaran real.`
+        : `Kredensial payment gateway belum diisi di file .env (PAYMENT_GATEWAY_SERVER_KEY). Sistem beroperasi dalam mode Sandbox Virtual Account terintegrasi.`
+    });
+  });
+
+  // 3. Create Virtual Account Transaction
+  app.post('/api/payment/create-va', async (req, res) => {
+    try {
+      const {
+        orderId,
+        orderNo,
+        customerId,
+        customerName,
+        customerPhone,
+        customerEmail,
+        amount,
+        bankCode,
+        items
+      } = req.body;
+
+      if (!orderId || !amount || !bankCode) {
+        return res.status(400).json({
+          error: 'Parameter tidak lengkap: orderId, amount, dan bankCode wajib diisi.'
+        });
+      }
+
+      const transaction = await createVirtualAccountTransaction({
+        orderId,
+        orderNo,
+        customerId: customerId || 'guest-customer',
+        customerName: customerName || 'Pelanggan Optik',
+        customerPhone,
+        customerEmail,
+        amount: Number(amount),
+        bankCode,
+        items: items || []
+      });
+
+      return res.status(201).json({
+        success: true,
+        transaction
+      });
+    } catch (err: any) {
+      console.error('Error creating Virtual Account:', err);
+      return res.status(500).json({
+        error: 'Gagal membuat Virtual Account pembayaran',
+        message: err.message
+      });
+    }
+  });
+
+  // 4. Get Payment Status (Polling / Realtime Check)
+  app.get('/api/payment/status/:orderId', (req, res) => {
+    const { orderId } = req.params;
+    const record = paymentTransactions.get(orderId);
+
+    if (!record) {
+      return res.status(404).json({
+        error: 'Transaksi pembayaran tidak ditemukan',
+        orderId
+      });
+    }
+
+    // Auto-check expiry
+    const now = new Date();
+    if (record.paymentStatus === 'PENDING' && new Date(record.expiredAt) < now) {
+      record.paymentStatus = 'EXPIRED';
+      record.orderStatus = 'KADALUARSA';
+      record.updatedAt = now.toISOString();
+      paymentTransactions.set(orderId, record);
+    }
+
+    return res.json({
+      success: true,
+      transaction: record
+    });
+  });
+
+  // 5. Official Webhook / Callback Handler (Idempotent & Signature Verified)
+  app.post('/api/payment/webhook', async (req, res) => {
+    try {
+      console.log('Received Payment Gateway Webhook Callback:', req.body);
+      const result = await processPaymentWebhook(req.body, req.headers as any);
+
+      if (!result.success && result.status === 'INVALID_SIGNATURE') {
+        return res.status(401).json({
+          error: 'Signature verification failed',
+          message: result.message
+        });
+      }
+
+      if (!result.success && result.status === 'NOT_FOUND') {
+        return res.status(404).json({
+          error: 'Transaction not found',
+          message: result.message
+        });
+      }
+
+      return res.status(200).json({
+        received: true,
+        status: result.status,
+        message: result.message,
+        orderId: result.orderId,
+        paymentStatus: result.paymentRecord?.paymentStatus,
+        orderStatus: result.paymentRecord?.orderStatus
+      });
+    } catch (err: any) {
+      console.error('Webhook processing error:', err);
+      return res.status(500).json({
+        error: 'Internal Webhook Error',
+        message: err.message
+      });
+    }
+  });
+
+  // 6. Test Webhook Simulation Endpoint (for Sandbox/Local testing without real money transfer)
+  app.post('/api/payment/simulate-webhook', async (req, res) => {
+    try {
+      const { orderId, action } = req.body; // action: 'settlement' | 'expire' | 'cancel'
+      if (!orderId) {
+        return res.status(400).json({ error: 'orderId is required' });
+      }
+
+      const record = paymentTransactions.get(orderId);
+      if (!record) {
+        return res.status(404).json({ error: 'Order not found in payment transactions' });
+      }
+
+      const mockPayload = {
+        order_id: orderId,
+        transaction_status: action || 'settlement',
+        status_code: '200',
+        gross_amount: String(record.amount),
+        transaction_id: `sim-gw-${Date.now()}`,
+        simulated_by_tester: true
+      };
+
+      const result = await processPaymentWebhook(mockPayload, {});
+      return res.json(result);
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
   });
 
   // AI Employee Evaluation Endpoint

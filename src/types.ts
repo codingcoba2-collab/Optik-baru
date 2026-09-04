@@ -282,6 +282,48 @@ export interface MarketplaceOrderItem {
   };
 }
 
+export type PaymentTransactionStatus = 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED';
+export type PaymentOrderStatus = 'MENUNGGU PEMBAYARAN' | 'DIKONFIRMASI' | 'KADALUARSA' | 'DIBATALKAN' | string;
+
+export interface PaymentTransaction {
+  paymentId: string;
+  orderId: string;
+  orderNo?: string;
+  customerId: string;
+  customerName?: string;
+  customerPhone?: string;
+  customerEmail?: string;
+  amount: number;
+  paymentMethod: 'Virtual Account' | string;
+  bankCode: string;
+  bankName: string;
+  virtualAccountNumber: string;
+  paymentStatus: PaymentTransactionStatus;
+  orderStatus: PaymentOrderStatus;
+  expiredAt: string;
+  paidAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  gatewayProvider?: string;
+  gatewayTransactionId?: string;
+  signature?: string;
+  items?: any[];
+  instructions?: {
+    atm?: string[];
+    mobileBanking?: string[];
+    internetBanking?: string[];
+  };
+}
+
+export interface BankOption {
+  code: string;
+  name: string;
+  shortName: string;
+  logo: string;
+  color: string;
+  description: string;
+}
+
 export interface MarketplaceOrder {
   id: string;
   orderNo: string;
@@ -300,11 +342,19 @@ export interface MarketplaceOrder {
   discountAmount: number;
   shippingFee: number;
   totalAmount: number;
-  paymentMethod: 'cod' | 'bank_transfer' | 'qris' | string;
-  selectedBank?: 'BCA' | 'Mandiri' | 'BRI' | 'BNI' | 'Permata' | 'CIMB Niaga' | 'BSI';
+  paymentMethod: 'Virtual Account' | 'bank_transfer' | 'qris' | 'cod' | string;
+  selectedBank?: 'BRI' | 'BCA' | 'BNI' | 'Mandiri' | 'Permata' | 'CIMB Niaga' | 'BSI' | 'Danamon' | string;
+  bankCode?: string;
+  bankName?: string;
   vaNumber?: string;
-  paymentStatus: 'menunggu_pembayaran' | 'terverifikasi' | 'paid' | string;
+  virtualAccountNumber?: string;
+  paymentId?: string;
+  paymentStatus: 'PENDING' | 'PAID' | 'EXPIRED' | 'FAILED' | 'menunggu_pembayaran' | 'terverifikasi' | 'paid' | string;
   orderStatus: 
+    | 'MENUNGGU PEMBAYARAN'
+    | 'DIKONFIRMASI'
+    | 'KADALUARSA'
+    | 'DIBATALKAN'
     | 'menunggu_konfirmasi' 
     | 'sedang_difaset' 
     | 'sedang_diantar' 
@@ -318,6 +368,7 @@ export interface MarketplaceOrder {
     | 'shipped' 
     | string;
   createdAt: string;
+  expiredAt?: string;
   paidAt?: string;
   transferProofUrl?: string;
   completedAt?: string;
