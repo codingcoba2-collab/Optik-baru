@@ -1,11 +1,40 @@
 @import "tailwindcss";
 
-@custom-variant dark (&:where(.dark, .dark *));
+@custom-variant dark (&:where(.dark, :where(.dark *)));
+
+@theme {
+  --color-sky-50: var(--palette-50, #f0f9ff);
+  --color-sky-100: var(--palette-100, #e0f2fe);
+  --color-sky-200: var(--palette-200, #bae6fd);
+  --color-sky-300: var(--palette-300, #7dd3fc);
+  --color-sky-400: var(--palette-400, #38bdf8);
+  --color-sky-500: var(--palette-500, #0ea5e9);
+  --color-sky-600: var(--palette-600, #0284c7);
+  --color-sky-700: var(--palette-700, #0369a1);
+  --color-sky-800: var(--palette-800, #075985);
+  --color-sky-900: var(--palette-900, #0c4a6e);
+  --color-sky-950: var(--palette-950, #082f49);
+}
 
 @layer base {
   html, body {
-    touch-action: pan-x pan-y pinch-zoom;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    min-height: 100%;
     -webkit-text-size-adjust: 100%;
+    touch-action: manipulation;
+    overscroll-behavior-y: none;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    max-width: 100vw;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
   }
 
   :root {
@@ -21,6 +50,19 @@
     --accent-soft: rgba(2, 132, 199, 0.12);
     --badge-bg: #e0f2fe;
     --badge-text: #0369a1;
+
+    /* Default Palette (Electric Ocean - Light) */
+    --palette-50: #f0f9ff;
+    --palette-100: #e0f2fe;
+    --palette-200: #bae6fd;
+    --palette-300: #7dd3fc;
+    --palette-400: #38bdf8;
+    --palette-500: #0ea5e9;
+    --palette-600: #0284c7;
+    --palette-700: #0369a1;
+    --palette-800: #075985;
+    --palette-900: #0c4a6e;
+    --palette-950: #082f49;
   }
 
   :root.dark, html.dark, .dark {
@@ -36,6 +78,19 @@
     --accent-soft: rgba(56, 189, 248, 0.18);
     --badge-bg: #082f49;
     --badge-text: #7dd3fc;
+
+    /* Default Palette (Electric Ocean - Dark) */
+    --palette-50: #082f49;
+    --palette-100: #0c4a6e;
+    --palette-200: #0369a1;
+    --palette-300: #0284c7;
+    --palette-400: #38bdf8;
+    --palette-500: #38bdf8;
+    --palette-600: #0284c7;
+    --palette-700: #0369a1;
+    --palette-800: #075985;
+    --palette-900: #0c4a6e;
+    --palette-950: #041b2d;
   }
 
   /* 6 Optical Palettes - Light Mode */
@@ -43,43 +98,97 @@
     --accent-color: #0284c7;
     --accent-hover: #0369a1;
     --accent-soft: rgba(2, 132, 199, 0.15);
-    --badge-bg: #e0f2fe;
-    --badge-text: #0369a1;
+    --palette-50: #f0f9ff;
+    --palette-100: #e0f2fe;
+    --palette-200: #bae6fd;
+    --palette-300: #7dd3fc;
+    --palette-400: #38bdf8;
+    --palette-500: #0ea5e9;
+    --palette-600: #0284c7;
+    --palette-700: #0369a1;
+    --palette-800: #075985;
+    --palette-900: #0c4a6e;
+    --palette-950: #082f49;
   }
   :root[data-palette="Neon Cyber"], html[data-palette="Neon Cyber"], [data-palette="Neon Cyber"] {
     --accent-color: #10b981;
     --accent-hover: #059669;
     --accent-soft: rgba(16, 185, 129, 0.15);
-    --badge-bg: #d1fae5;
-    --badge-text: #065f46;
+    --palette-50: #ecfdf5;
+    --palette-100: #d1fae5;
+    --palette-200: #a7f3d0;
+    --palette-300: #6ee7b7;
+    --palette-400: #34d399;
+    --palette-500: #10b981;
+    --palette-600: #059669;
+    --palette-700: #047857;
+    --palette-800: #065f46;
+    --palette-900: #064e3b;
+    --palette-950: #022c22;
   }
   :root[data-palette="Emerald Mint"], html[data-palette="Emerald Mint"], [data-palette="Emerald Mint"] {
     --accent-color: #0d9488;
     --accent-hover: #0f766e;
     --accent-soft: rgba(13, 148, 136, 0.15);
-    --badge-bg: #ccfbf1;
-    --badge-text: #115e59;
+    --palette-50: #f0fdfa;
+    --palette-100: #ccfbf1;
+    --palette-200: #99f6e4;
+    --palette-300: #5eead4;
+    --palette-400: #2dd4bf;
+    --palette-500: #14b8a6;
+    --palette-600: #0d9488;
+    --palette-700: #0f766e;
+    --palette-800: #115e59;
+    --palette-900: #134e4a;
+    --palette-950: #042f2e;
   }
   :root[data-palette="Royal Violet"], html[data-palette="Royal Violet"], [data-palette="Royal Violet"] {
     --accent-color: #7c3aed;
     --accent-hover: #6d28d9;
     --accent-soft: rgba(124, 58, 237, 0.15);
-    --badge-bg: #ede9fe;
-    --badge-text: #5b21b6;
+    --palette-50: #f5f3ff;
+    --palette-100: #ede9fe;
+    --palette-200: #ddd6fe;
+    --palette-300: #c4b5fd;
+    --palette-400: #a78bfa;
+    --palette-500: #8b5cf6;
+    --palette-600: #7c3aed;
+    --palette-700: #6d28d9;
+    --palette-800: #5b21b6;
+    --palette-900: #4c1d95;
+    --palette-950: #2e1065;
   }
   :root[data-palette="Sunset Coral"], html[data-palette="Sunset Coral"], [data-palette="Sunset Coral"] {
     --accent-color: #f43f5e;
     --accent-hover: #e11d48;
     --accent-soft: rgba(244, 63, 94, 0.15);
-    --badge-bg: #ffe4e6;
-    --badge-text: #9f1239;
+    --palette-50: #fff1f2;
+    --palette-100: #ffe4e6;
+    --palette-200: #fecdd3;
+    --palette-300: #fda4af;
+    --palette-400: #fb7185;
+    --palette-500: #f43f5e;
+    --palette-600: #e11d48;
+    --palette-700: #be123c;
+    --palette-800: #9f1239;
+    --palette-900: #881337;
+    --palette-950: #4c0519;
   }
   :root[data-palette="Minimalist Studio"], html[data-palette="Minimalist Studio"], [data-palette="Minimalist Studio"] {
     --accent-color: #475569;
     --accent-hover: #334155;
     --accent-soft: rgba(71, 85, 105, 0.15);
-    --badge-bg: #f1f5f9;
-    --badge-text: #1e293b;
+    --palette-50: #f8fafc;
+    --palette-100: #f1f5f9;
+    --palette-200: #e2e8f0;
+    --palette-300: #cbd5e1;
+    --palette-400: #94a3b8;
+    --palette-500: #64748b;
+    --palette-600: #475569;
+    --palette-700: #334155;
+    --palette-800: #1e293b;
+    --palette-900: #0f172a;
+    --palette-950: #020617;
   }
 
   /* 6 Optical Palettes - Dark Mode */
@@ -87,43 +196,97 @@
     --accent-color: #38bdf8;
     --accent-hover: #7dd3fc;
     --accent-soft: rgba(56, 189, 248, 0.2);
-    --badge-bg: #082f49;
-    --badge-text: #7dd3fc;
+    --palette-50: #082f49;
+    --palette-100: #0c4a6e;
+    --palette-200: #0369a1;
+    --palette-300: #0284c7;
+    --palette-400: #38bdf8;
+    --palette-500: #38bdf8;
+    --palette-600: #0284c7;
+    --palette-700: #0369a1;
+    --palette-800: #075985;
+    --palette-900: #0c4a6e;
+    --palette-950: #041b2d;
   }
   html.dark[data-palette="Neon Cyber"], .dark[data-palette="Neon Cyber"], .dark [data-palette="Neon Cyber"] {
     --accent-color: #34d399;
     --accent-hover: #6ee7b7;
     --accent-soft: rgba(52, 211, 153, 0.2);
-    --badge-bg: #064e3b;
-    --badge-text: #6ee7b7;
+    --palette-50: #064e3b;
+    --palette-100: #065f46;
+    --palette-200: #047857;
+    --palette-300: #059669;
+    --palette-400: #6ee7b7;
+    --palette-500: #34d399;
+    --palette-600: #10b981;
+    --palette-700: #059669;
+    --palette-800: #047857;
+    --palette-900: #064e3b;
+    --palette-950: #022c22;
   }
   html.dark[data-palette="Emerald Mint"], .dark[data-palette="Emerald Mint"], .dark [data-palette="Emerald Mint"] {
     --accent-color: #2dd4bf;
     --accent-hover: #5eead4;
     --accent-soft: rgba(45, 212, 191, 0.2);
-    --badge-bg: #134e4a;
-    --badge-text: #5eead4;
+    --palette-50: #134e4a;
+    --palette-100: #115e59;
+    --palette-200: #0f766e;
+    --palette-300: #0d9488;
+    --palette-400: #5eead4;
+    --palette-500: #2dd4bf;
+    --palette-600: #14b8a6;
+    --palette-700: #0d9488;
+    --palette-800: #0f766e;
+    --palette-900: #115e59;
+    --palette-950: #042f2e;
   }
   html.dark[data-palette="Royal Violet"], .dark[data-palette="Royal Violet"], .dark [data-palette="Royal Violet"] {
     --accent-color: #a78bfa;
     --accent-hover: #c4b5fd;
     --accent-soft: rgba(167, 139, 250, 0.2);
-    --badge-bg: #2e1065;
-    --badge-text: #c4b5fd;
+    --palette-50: #2e1065;
+    --palette-100: #3b0764;
+    --palette-200: #4c1d95;
+    --palette-300: #5b21b6;
+    --palette-400: #c4b5fd;
+    --palette-500: #a78bfa;
+    --palette-600: #8b5cf6;
+    --palette-700: #7c3aed;
+    --palette-800: #6d28d9;
+    --palette-900: #5b21b6;
+    --palette-950: #2e1065;
   }
   html.dark[data-palette="Sunset Coral"], .dark[data-palette="Sunset Coral"], .dark [data-palette="Sunset Coral"] {
     --accent-color: #fb7185;
     --accent-hover: #fda4af;
     --accent-soft: rgba(251, 113, 133, 0.2);
-    --badge-bg: #4c0519;
-    --badge-text: #fda4af;
+    --palette-50: #4c0519;
+    --palette-100: #881337;
+    --palette-200: #9f1239;
+    --palette-300: #be123c;
+    --palette-400: #fda4af;
+    --palette-500: #fb7185;
+    --palette-600: #f43f5e;
+    --palette-700: #e11d48;
+    --palette-800: #be123c;
+    --palette-900: #9f1239;
+    --palette-950: #4c0519;
   }
   html.dark[data-palette="Minimalist Studio"], .dark[data-palette="Minimalist Studio"], .dark [data-palette="Minimalist Studio"] {
     --accent-color: #cbd5e1;
     --accent-hover: #e2e8f0;
     --accent-soft: rgba(203, 213, 225, 0.2);
-    --badge-bg: #1e293b;
-    --badge-text: #f1f5f9;
+    --palette-50: #1e293b;
+    --palette-100: #334155;
+    --palette-200: #475569;
+    --palette-300: #64748b;
+    --palette-400: #cbd5e1;
+    --palette-500: #94a3b8;
+    --palette-600: #64748b;
+    --palette-700: #475569;
+    --palette-800: #334155;
+    --palette-900: #1e293b;
+    --palette-950: #0f172a;
   }
 }
 
@@ -142,12 +305,6 @@
 }
 .bg-accent-soft {
   background-color: var(--accent-soft) !important;
-}
-
-body {
-  width: 100%;
-  min-height: 100vh;
-  touch-action: pan-x pan-y pinch-zoom;
 }
 
 @media print {

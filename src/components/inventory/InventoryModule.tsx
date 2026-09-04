@@ -38,6 +38,12 @@ export const InventoryModule: React.FC = () => {
   const [selectedLensFilter, setSelectedLensFilter] = useState<string>('Semua');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<OpticalProduct | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
+
+  // Quick Stock Adjustment Modal State
+  const [quickStockProduct, setQuickStockProduct] = useState<OpticalProduct | null>(null);
+  const [quickStockQty, setQuickStockQty] = useState<number>(0);
 
   // Form State
   const [name, setName] = useState('');
@@ -90,6 +96,7 @@ export const InventoryModule: React.FC = () => {
 
   const openAddModal = () => {
     setEditingProduct(null);
+    setFormError(null);
     setName('');
     setSku(`OPT-${Date.now().toString().slice(-4)}`);
     setCategory('Lensa Kacamata');
@@ -113,6 +120,7 @@ export const InventoryModule: React.FC = () => {
 
   const openEditModal = (p: OpticalProduct) => {
     setEditingProduct(p);
+    setFormError(null);
     setName(p.name);
     setSku(p.sku);
     setCategory(p.category);
@@ -138,45 +146,66 @@ export const InventoryModule: React.FC = () => {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    setFormError(null);
 
-    const realHpp = basePurchasePrice + edgingCostPerUnit;
-
-    const payload: Omit<OpticalProduct, 'id'> = {
-      storeId: store.id,
-      storeName: store.name,
-      sku,
-      name,
-      category,
-      subcategory,
-      unit,
-      stockQty,
-      minStockAlert,
-      basePurchasePrice,
-      edgingCostPerUnit,
-      realHpp,
-      sellingPrice,
-      description,
-      lensCategories: selectedLensCategories,
-      sph,
-      cyl,
-      axis,
-      add,
-      coating,
-      diameter,
-      isMarketplaceListed: true,
-      soldCount: editingProduct?.soldCount || 0,
-      rating: editingProduct?.rating || 4.9,
-      cpcBid: editingProduct?.cpcBid || 500,
-      isAdActive: editingProduct?.isAdActive || false
-    };
-
-    if (editingProduct) {
-      await updateProduct(editingProduct.id, payload);
-    } else {
-      await addProduct(payload);
+    if (!name.trim()) {
+      setFormError('Nama produk / lensa wajib diisi.');
+      return;
     }
-    setIsModalOpen(false);
+
+    setIsSaving(true);
+    try {
+      const realHpp = (Number(basePurchasePrice) || 0) + (Number(edgingCostPerUnit) || 0);
+
+      const payload: Omit<OpticalProduct, 'id'> = {
+        storeId: store?.id || 'store-optik-01',
+        storeName: store?.name || 'Optik Jaya Sentosa',
+        sku: sku.trim() || `OPT-${Date.now().toString().slice(-4)}`,
+        name: name.trim(),
+        category,
+        subcategory: subcategory || 'Standard',
+        unit: unit || 'Pasang (Pair)',
+        stockQty: Math.max(0, Number(stockQty) || 0),
+        minStockAlert: Math.max(0, Number(minStockAlert) || 0),
+        basePurchasePrice: Math.max(0, Number(basePurchasePrice) || 0),
+        edgingCostPerUnit: Math.max(0, Number(edgingCostPerUnit) || 0),
+        realHpp,
+        sellingPrice: Math.max(0, Number(sellingPrice) || 0),
+        description: description || '',
+        lensCategories: selectedLensCategories || ['Single vision'],
+        sph: sph || '0.00',
+        cyl: cyl || '0.00',
+        axis: axis || '0',
+        add: add || '0.00',
+        coating: coating || 'Standard HC',
+        diameter: diameter || '70mm',
+        isMarketplaceListed: true,
+        soldCount: editingProduct?.soldCount || 0,
+        rating: editingProduct?.rating || 4.9,
+        cpcBid: editingProduct?.cpcBid || 500,
+        isAdActive: editingProduct?.isAdActive || false
+      };
+
+      if (editingProduct) {
+        await updateProduct(editingProduct.id, payload);
+      } else {
+        await addProduct(payload);
+      }
+      setIsModalOpen(false);
+    } catch (err: any) {
+      console.error('Save product error:', err);
+      setFormError('Gagal menyimpan produk: ' + (err?.message || 'Terjadi kesalahan sistem'));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleApplyQuickStock = async () => {
+    if (!quickStockProduct) return;
+    const safeQty = Math.max(0, Number(quickStockQty) || 0);
+    const delta = safeQty - quickStockProduct.stockQty;
+    await adjustStock(quickStockProduct.id, delta);
+    setQuickStockProduct(null);
   };
 
   const filteredProducts = products.filter((p) => {
@@ -401,21 +430,31 @@ export const InventoryModule: React.FC = () => {
                       <td className="p-3.5 text-center">
                         <div className="flex items-center justify-center gap-1.5">
                           <button
+                            type="button"
                             onClick={() => adjustStock(p.id, -1)}
-                            className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold"
+                            title="Kurangi 1 Stok"
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold flex items-center justify-center cursor-pointer border border-slate-700/60 transition-transform"
                           >
                             -
                           </button>
-                          <span
-                            className={`font-bold px-2 py-0.5 rounded text-xs ${
-                              isLow ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'text-white'
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setQuickStockProduct(p);
+                              setQuickStockQty(p.stockQty);
+                            }}
+                            title="Klik untuk ubah stok langsung"
+                            className={`font-bold px-2.5 py-1 rounded-lg text-xs transition-all cursor-pointer border hover:border-sky-400 ${
+                              isLow ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-slate-800 text-white border-slate-700'
                             }`}
                           >
                             {p.stockQty} {p.unit}
-                          </span>
+                          </button>
                           <button
+                            type="button"
                             onClick={() => adjustStock(p.id, 1)}
-                            className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold"
+                            title="Tambah 1 Stok"
+                            className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold flex items-center justify-center cursor-pointer border border-slate-700/60 transition-transform"
                           >
                             +
                           </button>
@@ -718,23 +757,109 @@ export const InventoryModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* Actions */}
+              {/* Actions & Error */}
+              {formError && (
+                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-medium">
+                  {formError}
+                </div>
+              )}
+
               <div className="flex gap-2 pt-3">
                 <button
                   type="button"
+                  disabled={isSaving}
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer disabled:opacity-50"
                 >
                   Batal
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-lg shadow-sky-600/30"
+                  disabled={isSaving}
+                  className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {editingProduct ? 'Simpan Perubahan' : 'Tambahkan ke Katalog Stok'}
+                  {isSaving ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Menyimpan Stok...</span>
+                    </>
+                  ) : (
+                    <span>{editingProduct ? 'Simpan Perubahan Stok' : 'Tambahkan ke Katalog Stok'}</span>
+                  )}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Stock Adjustment Modal */}
+      {quickStockProduct && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="max-w-sm w-full bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-black text-white">Sesuaikan Stok Produk</h3>
+                <p className="text-xs text-slate-400 truncate max-w-[220px]">{quickStockProduct.name}</p>
+              </div>
+              <button
+                onClick={() => setQuickStockProduct(null)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-between text-xs">
+              <span className="text-slate-400">Stok Saat Ini:</span>
+              <span className="font-mono font-bold text-sky-400 text-sm">
+                {quickStockProduct.stockQty} {quickStockProduct.unit}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1">
+                Jumlah Stok Baru ({quickStockProduct.unit})
+              </label>
+              <input
+                type="number"
+                min={0}
+                value={quickStockQty}
+                onChange={(e) => setQuickStockQty(Math.max(0, Number(e.target.value)))}
+                className="w-full text-center font-mono text-xl font-bold py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
+              />
+            </div>
+
+            {/* Quick adjust increment buttons */}
+            <div className="grid grid-cols-4 gap-1.5">
+              {[-5, -1, 1, 5].map((amt) => (
+                <button
+                  key={amt}
+                  type="button"
+                  onClick={() => setQuickStockQty((prev) => Math.max(0, prev + amt))}
+                  className="py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-xs font-semibold text-slate-300 border border-slate-700 cursor-pointer"
+                >
+                  {amt > 0 ? `+${amt}` : amt}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setQuickStockProduct(null)}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={handleApplyQuickStock}
+                className="flex-1 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-md shadow-sky-600/30"
+              >
+                Simpan Stok Baru
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -77,6 +77,7 @@ interface AppContextType {
   loginConsumer: (username: string, password?: string) => { success: boolean; message?: string };
   registerUser: (userData: Omit<UserAccount, 'id' | 'createdAt'>) => Promise<{ success: boolean; message?: string }>;
   loginWithGooglePopup: (userType: UserType, storeNameIfSeller?: string) => Promise<{ success: boolean; message?: string }>;
+  loginWithGoogleAccount: (email: string, fullName: string, userType: UserType, storeNameIfSeller?: string) => Promise<{ success: boolean; message?: string }>;
   switchUser: (employeeId: string) => void;
   logout: () => void;
 
@@ -301,18 +302,61 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const root = document.documentElement;
     if (isDark) {
       root.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      document.body.classList.add('dark');
     } else {
       root.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      document.body.classList.remove('dark');
     }
     root.setAttribute('data-palette', theme);
 
-    const paletteMap: Record<string, { primary: string; hover: string; soft: string }> = {
-      'Electric Ocean': { primary: '#0284c7', hover: '#0369a1', soft: 'rgba(2, 132, 199, 0.15)' },
-      'Neon Cyber': { primary: '#10b981', hover: '#059669', soft: 'rgba(16, 185, 129, 0.15)' },
-      'Emerald Mint': { primary: '#0d9488', hover: '#0f766e', soft: 'rgba(13, 148, 136, 0.15)' },
-      'Royal Violet': { primary: '#7c3aed', hover: '#6d28d9', soft: 'rgba(124, 58, 237, 0.15)' },
-      'Sunset Coral': { primary: '#f43f5e', hover: '#e11d48', soft: 'rgba(244, 63, 94, 0.15)' },
-      'Minimalist Studio': { primary: '#475569', hover: '#334155', soft: 'rgba(71, 85, 105, 0.15)' },
+    const paletteMap: Record<string, {
+      primary: string; hover: string; soft: string;
+      p50: string; p100: string; p200: string; p300: string; p400: string; p500: string; p600: string; p700: string; p800: string; p900: string; p950: string;
+    }> = {
+      'Electric Ocean': isDark ? {
+        primary: '#38bdf8', hover: '#7dd3fc', soft: 'rgba(56, 189, 248, 0.2)',
+        p50: '#082f49', p100: '#0c4a6e', p200: '#0369a1', p300: '#0284c7', p400: '#38bdf8', p500: '#38bdf8', p600: '#0284c7', p700: '#0369a1', p800: '#075985', p900: '#0c4a6e', p950: '#041b2d'
+      } : {
+        primary: '#0284c7', hover: '#0369a1', soft: 'rgba(2, 132, 199, 0.15)',
+        p50: '#f0f9ff', p100: '#e0f2fe', p200: '#bae6fd', p300: '#7dd3fc', p400: '#38bdf8', p500: '#0ea5e9', p600: '#0284c7', p700: '#0369a1', p800: '#075985', p900: '#0c4a6e', p950: '#082f49'
+      },
+      'Neon Cyber': isDark ? {
+        primary: '#34d399', hover: '#6ee7b7', soft: 'rgba(52, 211, 153, 0.2)',
+        p50: '#064e3b', p100: '#065f46', p200: '#047857', p300: '#059669', p400: '#6ee7b7', p500: '#34d399', p600: '#10b981', p700: '#059669', p800: '#047857', p900: '#064e3b', p950: '#022c22'
+      } : {
+        primary: '#10b981', hover: '#059669', soft: 'rgba(16, 185, 129, 0.15)',
+        p50: '#ecfdf5', p100: '#d1fae5', p200: '#a7f3d0', p300: '#6ee7b7', p400: '#34d399', p500: '#10b981', p600: '#059669', p700: '#047857', p800: '#065f46', p900: '#064e3b', p950: '#022c22'
+      },
+      'Emerald Mint': isDark ? {
+        primary: '#2dd4bf', hover: '#5eead4', soft: 'rgba(45, 212, 191, 0.2)',
+        p50: '#134e4a', p100: '#115e59', p200: '#0f766e', p300: '#0d9488', p400: '#5eead4', p500: '#2dd4bf', p600: '#14b8a6', p700: '#0d9488', p800: '#0f766e', p900: '#115e59', p950: '#042f2e'
+      } : {
+        primary: '#0d9488', hover: '#0f766e', soft: 'rgba(13, 148, 136, 0.15)',
+        p50: '#f0fdfa', p100: '#ccfbf1', p200: '#99f6e4', p300: '#5eead4', p400: '#2dd4bf', p500: '#14b8a6', p600: '#0d9488', p700: '#0f766e', p800: '#115e59', p900: '#134e4a', p950: '#042f2e'
+      },
+      'Royal Violet': isDark ? {
+        primary: '#a78bfa', hover: '#c4b5fd', soft: 'rgba(167, 139, 250, 0.2)',
+        p50: '#2e1065', p100: '#3b0764', p200: '#4c1d95', p300: '#5b21b6', p400: '#c4b5fd', p500: '#a78bfa', p600: '#8b5cf6', p700: '#7c3aed', p800: '#6d28d9', p900: '#5b21b6', p950: '#2e1065'
+      } : {
+        primary: '#7c3aed', hover: '#6d28d9', soft: 'rgba(124, 58, 237, 0.15)',
+        p50: '#f5f3ff', p100: '#ede9fe', p200: '#ddd6fe', p300: '#c4b5fd', p400: '#a78bfa', p500: '#8b5cf6', p600: '#7c3aed', p700: '#6d28d9', p800: '#5b21b6', p900: '#4c1d95', p950: '#2e1065'
+      },
+      'Sunset Coral': isDark ? {
+        primary: '#fb7185', hover: '#fda4af', soft: 'rgba(251, 113, 133, 0.2)',
+        p50: '#4c0519', p100: '#881337', p200: '#9f1239', p300: '#be123c', p400: '#fda4af', p500: '#fb7185', p600: '#f43f5e', p700: '#e11d48', p800: '#be123c', p900: '#9f1239', p950: '#4c0519'
+      } : {
+        primary: '#f43f5e', hover: '#e11d48', soft: 'rgba(244, 63, 94, 0.15)',
+        p50: '#fff1f2', p100: '#ffe4e6', p200: '#fecdd3', p300: '#fda4af', p400: '#fb7185', p500: '#f43f5e', p600: '#e11d48', p700: '#be123c', p800: '#9f1239', p900: '#881337', p950: '#4c0519'
+      },
+      'Minimalist Studio': isDark ? {
+        primary: '#cbd5e1', hover: '#e2e8f0', soft: 'rgba(203, 213, 225, 0.2)',
+        p50: '#1e293b', p100: '#334155', p200: '#475569', p300: '#64748b', p400: '#cbd5e1', p500: '#94a3b8', p600: '#64748b', p700: '#475569', p800: '#334155', p900: '#1e293b', p950: '#0f172a'
+      } : {
+        primary: '#475569', hover: '#334155', soft: 'rgba(71, 85, 105, 0.15)',
+        p50: '#f8fafc', p100: '#f1f5f9', p200: '#e2e8f0', p300: '#cbd5e1', p400: '#94a3b8', p500: '#64748b', p600: '#475569', p700: '#334155', p800: '#1e293b', p900: '#0f172a', p950: '#020617'
+      }
     };
 
     const p = paletteMap[theme] || paletteMap['Electric Ocean'];
@@ -320,6 +364,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     root.style.setProperty('--primary-accent', p.primary);
     root.style.setProperty('--accent-hover', p.hover);
     root.style.setProperty('--accent-soft', p.soft);
+
+    // Provide Tailwind v4 dynamic theme variables directly to root
+    root.style.setProperty('--palette-50', p.p50);
+    root.style.setProperty('--palette-100', p.p100);
+    root.style.setProperty('--palette-200', p.p200);
+    root.style.setProperty('--palette-300', p.p300);
+    root.style.setProperty('--palette-400', p.p400);
+    root.style.setProperty('--palette-500', p.p500);
+    root.style.setProperty('--palette-600', p.p600);
+    root.style.setProperty('--palette-700', p.p700);
+    root.style.setProperty('--palette-800', p.p800);
+    root.style.setProperty('--palette-900', p.p900);
+    root.style.setProperty('--palette-950', p.p950);
 
     localStorage.setItem('eyehub_dark', String(isDark));
     localStorage.setItem('eyehub_theme', theme);
@@ -645,6 +702,36 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     return { success: true };
   };
 
+  const loginWithGoogleAccount = async (
+    email: string,
+    fullName: string,
+    userType: UserType,
+    storeNameIfSeller?: string
+  ) => {
+    const username = email.split('@')[0] || 'user_' + Date.now().toString(36);
+    const phone = email.includes('danial')
+      ? '0895621670403'
+      : '08' + Math.floor(1000000000 + Math.random() * 900000000);
+
+    const existing = users.find((u) => u.email === email && u.userType === userType);
+    if (existing) {
+      setCurrentUser(existing);
+      if (existing.role) setCurrentRole(existing.role);
+      showToast(`Masuk dengan Google berhasil: ${fullName}`, 'success');
+      return { success: true };
+    }
+
+    return await registerUser({
+      username,
+      fullName,
+      email,
+      phone,
+      userType,
+      storeName: storeNameIfSeller || (userType === 'seller' ? 'Optik Jaya Sentosa' : undefined),
+      role: userType === 'seller' ? 'owner' : undefined
+    });
+  };
+
   const loginWithGooglePopup = async (userType: UserType, storeNameIfSeller?: string) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
@@ -666,25 +753,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         username,
         fullName: name,
         email,
-        phone: gUser.phoneNumber || '08' + Math.floor(1000000000 + Math.random() * 900000000),
+        phone: gUser.phoneNumber || '0895621670403',
         userType,
         storeName: storeNameIfSeller || (userType === 'seller' ? `Optik ${name}` : undefined),
         role: userType === 'seller' ? 'owner' : undefined
       });
     } catch (err: any) {
-      console.warn('Google sign-in fallback:', err);
-      // If popup blocked in iframe sandbox, provide fallback simulated sign in
-      const mockName = 'Pengguna Google Optik';
-      const mockEmail = 'user@google.com';
-      return await registerUser({
-        username: 'google_user',
-        fullName: mockName,
-        email: mockEmail,
-        phone: '081299887766',
-        userType,
-        storeName: storeNameIfSeller || (userType === 'seller' ? `Optik ${mockName}` : undefined),
-        role: userType === 'seller' ? 'owner' : undefined
-      });
+      console.warn('Google sign-in popup notice (switching to Google account flow):', err);
+      // Seamless fallback for iframe sandbox: sign in as Danial Ramdhan
+      const defaultEmail = 'danialramdhan@gmail.com';
+      const defaultName = 'Danial Ramdhan';
+      return await loginWithGoogleAccount(defaultEmail, defaultName, userType, storeNameIfSeller);
     }
   };
 
@@ -761,23 +840,40 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showToast('Pegawai berhasil dihapus', 'info');
   };
 
+  // Helper to sanitize objects for Firestore so no undefined values cause crashes
+  const cleanFirestoreObject = (obj: any): any => {
+    if (!obj || typeof obj !== 'object') return obj;
+    const clean: any = Array.isArray(obj) ? [] : {};
+    for (const key of Object.keys(obj)) {
+      const val = obj[key];
+      if (val !== undefined) {
+        if (val && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+          clean[key] = cleanFirestoreObject(val);
+        } else {
+          clean[key] = val;
+        }
+      }
+    }
+    return clean;
+  };
+
   // --- Products Handlers ---
   const addProduct = async (productData: Omit<OpticalProduct, 'id'>) => {
     const id = 'prod-' + Date.now().toString(36);
     const newProd: OpticalProduct = {
       ...productData,
       id,
-      storeId: store.id,
-      storeName: store.name,
+      storeId: store?.id || 'store-optik-01',
+      storeName: store?.name || 'Optik Jaya Sentosa',
       createdAt: new Date().toISOString()
     };
     setProducts((prev) => [newProd, ...prev]);
     try {
-      await setDoc(doc(db, 'products', id), newProd);
+      await setDoc(doc(db, 'products', id), cleanFirestoreObject(newProd));
     } catch (e) {
       console.warn('Firestore add product notice:', e);
     }
-    showToast(`Produk ${newProd.name} berhasil ditambahkan ke stok & etalase!`, 'success');
+    showToast(`Produk "${newProd.name}" berhasil ditambahkan ke stok & etalase!`, 'success');
   };
 
   const updateProduct = async (id: string, productData: Partial<OpticalProduct>) => {
@@ -785,7 +881,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       prev.map((p) => (p.id === id ? { ...p, ...productData } : p))
     );
     try {
-      await setDoc(doc(db, 'products', id), productData, { merge: true });
+      await setDoc(doc(db, 'products', id), cleanFirestoreObject(productData), { merge: true });
     } catch (e) {
       console.warn('Firestore update product notice:', e);
     }
@@ -806,7 +902,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const target = products.find((p) => p.id === id);
     if (!target) return;
     const newQty = Math.max(0, target.stockQty + delta);
-    await updateProduct(id, { stockQty: newQty });
+    setProducts((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, stockQty: newQty } : p))
+    );
+    try {
+      await setDoc(doc(db, 'products', id), { stockQty: newQty }, { merge: true });
+    } catch (e) {
+      console.warn('Firestore update stock notice:', e);
+    }
+    showToast(`Stok ${target.name}: ${newQty} ${target.unit}`, 'info');
   };
 
   // --- Lab Faset Handlers ---
@@ -1305,6 +1409,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         loginConsumer,
         registerUser,
         loginWithGooglePopup,
+        loginWithGoogleAccount,
         switchUser,
         logout,
 

@@ -20,7 +20,7 @@ export const INITIAL_STORE: StoreAccount = {
   name: 'Optik Jaya Sentosa',
   tagline: 'Lensa Presisi & Kacamata Terbaik',
   address: 'Jl. Pemuda No. 88, Jakarta',
-  phone: '081234567890',
+  phone: '0895621670403',
   marketplaceAdminFeePercent: 8.5,
   serviceFeePerOrder: 1000,
   monthlyTargetOmzet: 50000000,
@@ -52,4 +52,19 @@ export const INITIAL_DISCOUNT_COUPONS: DiscountCoupon[] = [];
 
 export const INITIAL_MARKETPLACE_ORDERS: MarketplaceOrder[] = [];
 
-export const INITIAL_USERS: UserAccount[] = [];
+export const INITIAL_USERS: UserAccount[] = [
+  {
+    id: 'usr-danial-01',
+    username: 'danialramdhan',
+    fullName: 'Danial Ramdhan',
+    name: 'Danial Ramdhan',
+    phone: '0895621670403',
+    email: 'danialramdhan@gmail.com',
+    userType: 'seller',
+    storeName: 'Optik Jaya Sentosa',
+    role: 'owner',
+    roles: ['owner'],
+    createdAt: new Date().toISOString()
+  }
+];
+
