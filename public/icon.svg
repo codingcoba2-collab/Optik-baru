@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0f172a"/>
+  <defs>
+    <linearGradient id="opticsGrad" x1="64" y1="128" x2="448" y2="384" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="0.5" stop-color="#0284c7"/>
+      <stop offset="1" stop-color="#6366f1"/>
+    </linearGradient>
+    <linearGradient id="lensGlow" x1="100" y1="180" x2="220" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8" stop-opacity="0.25"/>
+      <stop offset="1" stop-color="#6366f1" stop-opacity="0.05"/>
+    </linearGradient>
+  </defs>
+  <!-- Frame bridge -->
+  <path d="M216 256C236 244 276 244 296 256" stroke="url(#opticsGrad)" stroke-width="20" stroke-linecap="round"/>
+  <!-- Left eye lens -->
+  <circle cx="152" cy="272" r="76" fill="url(#lensGlow)" stroke="url(#opticsGrad)" stroke-width="20"/>
+  <!-- Right eye lens -->
+  <circle cx="360" cy="272" r="76" fill="url(#lensGlow)" stroke="url(#opticsGrad)" stroke-width="20"/>
+  <!-- Temple hinges -->
+  <path d="M76 264H50C42 264 36 258 36 250V220" stroke="url(#opticsGrad)" stroke-width="18" stroke-linecap="round"/>
+  <path d="M436 264H462C470 264 476 258 476 250V220" stroke="url(#opticsGrad)" stroke-width="18" stroke-linecap="round"/>
+  <!-- Lens reflection highlight -->
+  <path d="M124 232C136 220 152 216 168 220" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-opacity="0.6"/>
+  <path d="M332 232C344 220 360 216 376 220" stroke="#ffffff" stroke-width="8" stroke-linecap="round" stroke-opacity="0.6"/>
+</svg>
