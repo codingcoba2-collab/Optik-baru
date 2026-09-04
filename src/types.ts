@@ -1,12 +1,49 @@
-export type Role = 'owner' | 'host' | 'admin' | 'faset';
+export type Role = 
+  | 'owner' 
+  | 'assisten' 
+  | 'optisi' 
+  | 'pelayan' 
+  | 'teknisi' 
+  | 'host' 
+  | 'admin' 
+  | 'faset';
 
-export type BaseSalaryType = 'hourly' | 'daily';
+export type UserType = 'seller' | 'consumer';
+
+export interface UserAccount {
+  id: string;
+  username: string;
+  password?: string;
+  fullName: string;
+  userType: UserType;
+  phone: string;
+  email?: string;
+  storeId?: string;
+  storeName?: string;
+  role?: Role;
+  createdAt: string;
+}
+
+export type BaseSalaryType = 'hourly' | 'daily' | 'monthly';
+
+export interface DailyTargetRule {
+  enabled: boolean;
+  thresholdUnits: number; // e.g. diatas 20 terjual
+  regularRate: number; // insentif s/d 20 unit
+  excessBonusRate: number; // insentif tambahan untuk unit ke-21 dst
+}
+
+export interface MonthlyTargetRule {
+  enabled: boolean;
+  targetOmzet: number; // target omzet bulanan (Rp)
+  netProfitPercent: number; // persentase dari laba bersih setelah semua pengeluaran (e.g. 3%)
+}
 
 export interface TierRule {
   enabled: boolean;
-  thresholdUnits: number; // e.g. 15 paket
-  bonusRate: number; // rate bonus per paket
-  mode: 'excess_only' | 'all_units'; // kelebihan saja atau seluruh unit
+  thresholdUnits: number;
+  bonusRate: number;
+  mode: 'excess_only' | 'all_units';
 }
 
 export interface DualRoleBonus {
@@ -19,17 +56,17 @@ export interface MonthlyOmzetBonus {
   enabled: boolean;
   targetOmzet: number;
   type: 'percent_omzet' | 'percent_net_profit' | 'fixed_nominal';
-  value: number; // e.g. 1.5 for 1.5% or 500000 for Rp 500rb
+  value: number;
 }
 
 export interface SalaryScheme {
   baseType: BaseSalaryType;
-  baseRate: number; // e.g. 15,000 / jam atau 120,000 / hari
-  perFrameSold: number; // Insentif per frame kacamata
-  perPackageSold: number; // Insentif per paket kacamata + lensa (bundling resep)
-  perLensFaset: number; // Insentif per pasang lensa difaset (Teknisi Lab Faset)
-  fixedNominal: number; // Tunjangan tetap
-  ownerProfitPercent: number; // % Laba bersih owner
+  baseRate: number;
+  perFrameSold: number;
+  perPackageSold: number;
+  perLensFaset: number;
+  fixedNominal: number;
+  ownerProfitPercent: number;
   tierRule: TierRule;
   dualRoleBonus: DualRoleBonus;
   monthlyOmzetBonus: MonthlyOmzetBonus;
@@ -39,14 +76,30 @@ export interface Employee {
   id: string;
   storeId: string;
   name: string;
-  roles: Role[];
+  username: string;
+  password?: string;
+  roles: Role[]; // bisa rangkap: owner, assisten, optisi, pelayan, teknisi
   phone: string;
   active: boolean;
+
+  // Skema Gaji
+  salaryPeriod: 'hourly' | 'daily' | 'monthly';
+  salaryRate: number;
+  salaryCalculationType: 'flat' | 'per_pcs' | 'per_package';
+
+  // Skema Insentif
+  incentivePeriod: 'daily' | 'weekly' | 'monthly';
+  incentiveRate: number;
+  incentiveCalculationType: 'per_pcs' | 'per_package';
+
+  // Target Tambahan
+  dailyTarget: DailyTargetRule;
+  monthlyTarget: MonthlyTargetRule;
+
   salaryScheme: SalaryScheme;
-  baseSalary?: number;
-  incentiveScheme?: IncentiveScheme;
   bankInfo?: string;
   bankAccount?: string;
+  createdAt?: string;
 }
 
 export type OpticalCategory = 
@@ -56,37 +109,73 @@ export type OpticalCategory =
   | 'Sunglasses' 
   | 'Aksesoris Optik';
 
+export type LensCategoryType = 
+  | 'Single vision' 
+  | 'Bifocal' 
+  | 'Progressive' 
+  | 'Blueray' 
+  | 'Photochromic' 
+  | 'Sunglasses' 
+  | 'Plano';
+
 export type UnitType = 'Pcs' | 'Pasang (Pair)' | 'Box' | 'Lusin' | 'Gross';
 
 export interface OpticalProduct {
   id: string;
   storeId: string;
+  storeName?: string;
   sku: string;
   name: string;
   category: OpticalCategory;
-  subcategory: string; // e.g. 'Titanium', 'Acetate', 'TR90', 'Bluechromic', 'Progressive', 'Anti-Radiasi'
+  subcategory: string;
   unit: UnitType;
   stockQty: number;
   minStockAlert: number;
-  basePurchasePrice: number; // Modal beli awal frame / lensa kosongan
-  edgingCostPerUnit: number; // Biaya pengerjaan faset/lab per unit
-  realHpp: number; // basePurchasePrice + edgingCostPerUnit
+  basePurchasePrice: number; // Modal beli
+  edgingCostPerUnit: number; // Biaya faset
+  realHpp: number; // Modal + Faset
   sellingPrice: number;
   description?: string;
+
+  // Kategori Lensa Kombinasi (Bisa pilih beberapa)
+  lensCategories: LensCategoryType[];
+
+  // Atribut Lensa
+  sph?: string; // e.g. -2.00 s/d +4.00 atau Plano
+  cyl?: string; // e.g. -0.50
+  axis?: string; // e.g. 180
+  add?: string; // e.g. +1.50
+  coating?: string; // e.g. "Anti-Reflective", "Super Hydrophobic", "Blue Ray Protection"
+  diameter?: string; // e.g. "70mm"
+
+  // Marketplace & Iklan
+  isMarketplaceListed?: boolean;
+  soldCount?: number;
+  rating?: number;
+  cpcBid?: number; // Biaya per klik iklan
+  isAdActive?: boolean;
+  createdAt?: string;
 }
 
+export type CashflowEntry = CashflowRecord;
+export type AdSpendEntry = AdSpendRecord;
+
+export type CourierType = 'J&T' | 'JNE' | 'SiCepat' | 'GoSend' | 'GrabExpress';
+export type PaymentMethodType = 'COD' | 'Transfer' | 'QRIS';
+export type ShippingRateType = 'auto' | 'manual';
+
 export interface EyePrescription {
-  sph: string; // -2.00, +1.50, plano
-  cyl: string; // -0.50, 0.00
-  axis: string; // 180, 90
-  add?: string; // +2.00 (bifokal/progresif)
+  sph?: string;
+  cyl?: string;
+  axis?: string;
+  add?: string;
 }
 
 export interface PrescriptionData {
   rightEye: EyePrescription;
   leftEye: EyePrescription;
-  pd: string; // Pupil distance in mm, e.g. 64mm
-  lensTypeRequested: string; // e.g. Bluechromic Index 1.56, Anti Radiasi UV420
+  pd: string;
+  lensTypeRequested: string;
 }
 
 export type FasetStatus = 
@@ -107,7 +196,9 @@ export interface FasetLabOrder {
   frameName: string;
   lensType: string;
   prescription: PrescriptionData;
-  technicianId: string; // Employee with 'faset' role
+  technicianId?: string; // jika ada teknisi internal
+  hasTechnician: boolean; // false jika tidak ada teknisi internal
+  externalFasetCost: number; // biaya faset jika tidak ada teknisi
   status: FasetStatus;
   rejectReason?: string;
   technicianIncentive: number;
@@ -115,7 +206,76 @@ export interface FasetLabOrder {
   completedAt?: string;
 }
 
+export interface AdCampaign {
+  id: string;
+  storeId: string;
+  productId: string;
+  productName: string;
+  keywords: string[];
+  cpcBid: number; // Biaya per klik (e.g. Rp 500)
+  dailyBudget: number; // Budget harian (e.g. Rp 50.000)
+  status: 'active' | 'paused';
+  clicks: number;
+  spent: number;
+  salesCount: number;
+  revenue: number;
+  createdAt: string;
+}
+
+export interface DiscountCoupon {
+  id: string;
+  storeId: string;
+  code: string;
+  name: string;
+  type: 'percentage' | 'fixed'; // persentase (%) atau nilai pasti (Rp)
+  value: number; // e.g. 10 (untuk 10%) atau 25000 (untuk Rp 25.000)
+  minPurchase: number; // minimal pembelian (Rp)
+  maxDiscount?: number;
+  validUntil: string;
+  usageCount: number;
+  maxQuota: number;
+  active: boolean;
+}
+
+export interface MarketplaceOrderItem {
+  productId: string;
+  productName: string;
+  qty: number;
+  price: number;
+  selectedCategories?: LensCategoryType[];
+  prescription?: {
+    od: EyePrescription;
+    os: EyePrescription;
+    pd: string;
+  };
+}
+
+export interface MarketplaceOrder {
+  id: string;
+  orderNo: string;
+  storeId: string;
+  storeName: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  shippingAddress: string;
+  items: MarketplaceOrderItem[];
+  subtotal: number;
+  discountAmount: number;
+  shippingFee: number;
+  totalAmount: number;
+  paymentMethod: 'cod' | 'bank_transfer' | 'qris';
+  selectedBank?: 'BCA' | 'Mandiri' | 'BRI' | 'BNI' | 'Permata' | 'CIMB Niaga' | 'BSI';
+  vaNumber?: string;
+  paymentStatus: 'menunggu_pembayaran' | 'terverifikasi';
+  orderStatus: 'menunggu_pembayaran' | 'diproses' | 'faset' | 'dikirim' | 'selesai' | 'dibatalkan';
+  createdAt: string;
+  paidAt?: string;
+  transferProofUrl?: string;
+}
+
 export type SalesChannel = 
+  | 'Marketplace App'
   | 'TikTok Live' 
   | 'Shopee Live' 
   | 'Tokopedia Live' 
@@ -147,9 +307,9 @@ export interface SaleOrder {
   items: SaleItem[];
   fasetLabOrderId?: string;
   grossAmount: number;
-  marketplaceAdminFee: number; // e.g. 8.5%
-  serviceFee: number; // e.g. Rp 1.000
-  netRevenue: number; // grossAmount - marketplaceAdminFee - serviceFee
+  marketplaceAdminFee: number;
+  serviceFee: number;
+  netRevenue: number;
   totalHpp: number;
   hostEmployeeId?: string;
   adminEmployeeId?: string;
@@ -164,12 +324,12 @@ export interface AttendanceRecord {
   date: string;
   clockIn: string;
   clockOut: string;
+  checkInTime?: string;
+  checkOutTime?: string;
   totalHours: number;
   status: 'Hadir' | 'Terlambat' | 'Izin' | 'Sakit' | 'Alpa';
   lateMinutes: number;
   shift?: ShiftType;
-  checkInTime?: string;
-  checkOutTime?: string;
   notes?: string;
 }
 
@@ -179,10 +339,10 @@ export interface AdSpendRecord {
   date: string;
   platform: 'TikTok Ads' | 'Shopee Ads' | 'Tokopedia Ads' | 'IG Meta Ads' | 'Meta Ads' | 'Google Ads';
   adBudget: number;
-  liveCoinSaweran: number; // Koin tap-tap / voucher sawer live optik
+  liveCoinSaweran: number;
   salesAttributed?: number;
   revenueGenerated?: number;
-  roas: number; // salesAttributed / (adBudget + liveCoinSaweran)
+  roas: number;
   notes?: string;
 }
 
@@ -216,14 +376,17 @@ export interface CashflowRecord {
 export interface StoreAccount {
   id: string;
   name: string;
+  ownerId?: string;
   tagline: string;
   address: string;
   phone: string;
-  marketplaceAdminFeePercent: number; // default 8.5%
-  serviceFeePerOrder: number; // default 1000
-  monthlyTargetOmzet: number; // default 50,000,000
+  marketplaceAdminFeePercent: number;
+  serviceFeePerOrder: number;
+  monthlyTargetOmzet: number;
   cashOnHand: number;
   escrowBalance: number;
+  hasInternalTechnician: boolean; // apakah ada teknisi faset internal
+  defaultExternalFasetCost: number; // biaya faset maklon/luar jika tidak ada teknisi internal
 }
 
 export type ShiftType = 
@@ -250,14 +413,6 @@ export type ExpenseCategory =
   | 'Operasional Lab Faset'
   | 'Lain-lain';
 
-export type ColorPalette = 
-  | 'sky' 
-  | 'indigo' 
-  | 'emerald' 
-  | 'rose' 
-  | 'amber' 
-  | 'violet';
-
 export type ThemePalette = 
   | 'Electric Ocean' 
   | 'Neon Cyber' 
@@ -265,11 +420,6 @@ export type ThemePalette =
   | 'Royal Violet' 
   | 'Sunset Coral' 
   | 'Minimalist Studio';
-
-export type StoreConfig = StoreAccount;
-export type CashflowEntry = CashflowRecord;
-export type AdSpendEntry = AdSpendRecord;
-export type IncentiveScheme = SalaryScheme;
 
 export interface AiEvaluationResult {
   overallScore?: number;
@@ -280,14 +430,4 @@ export interface AiEvaluationResult {
   improvements?: string[];
   recommendations?: string[];
   performanceGrade?: 'S' | 'A' | 'B' | 'C' | 'D';
-  efficiencyRatings?: {
-    productivity: number;
-    salesContribution: number;
-    discipline: number;
-    opticalQc: number;
-  };
-  narrativeSummary?: string;
-  keyStrengths?: string[];
-  areasForImprovement?: string[];
-  actionRecommendations?: string[];
 }

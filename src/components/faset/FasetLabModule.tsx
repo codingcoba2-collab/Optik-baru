@@ -32,8 +32,10 @@ export const FasetLabModule: React.FC = () => {
   const [phone, setPhone] = useState('');
   const [frameName, setFrameName] = useState('Frame Titanium Ultralight Korea Style');
   const [lensType, setLensType] = useState('Lensa Bluechromic (Photocromic + Blue Ray) Index 1.56');
+  const [hasTechnician, setHasTechnician] = useState<boolean>(store.hasInternalTechnician);
+  const [externalFasetCost, setExternalFasetCost] = useState<number>(store.defaultExternalFasetCost || 20000);
   const [technicianId, setTechnicianId] = useState(() => {
-    const fasetEmp = employees.find((e) => e.roles.includes('faset'));
+    const fasetEmp = employees.find((e) => e.roles.includes('faset') || e.roles.includes('teknisi'));
     return fasetEmp ? fasetEmp.id : employees[0]?.id || '';
   });
   const [technicianIncentive, setTechnicianIncentive] = useState(8000);
@@ -86,9 +88,11 @@ export const FasetLabModule: React.FC = () => {
         pd: pd + ' mm',
         lensTypeRequested: lensType,
       },
-      technicianId,
+      technicianId: hasTechnician ? technicianId : undefined,
+      hasTechnician,
+      externalFasetCost: hasTechnician ? 0 : externalFasetCost,
       status: 'Antrean Lab',
-      technicianIncentive,
+      technicianIncentive: hasTechnician ? technicianIncentive : 0,
       notes,
     };
 
@@ -327,8 +331,16 @@ export const FasetLabModule: React.FC = () => {
               {/* Action Controls & Stage Progress */}
               <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2">
                 <div className="text-xs text-slate-500">
-                  Teknisi: <strong className="text-slate-800 dark:text-slate-200">{tech?.name || 'Belum ditugaskan'}</strong>
-                  <span className="text-[10px] text-emerald-500 ml-1">({formatRupiah(order.technicianIncentive)})</span>
+                  {order.hasTechnician !== false ? (
+                    <>
+                      Teknisi: <strong className="text-slate-800 dark:text-slate-200">{tech?.name || 'Internal Lab'}</strong>
+                      <span className="text-[10px] text-emerald-500 ml-1">({formatRupiah(order.technicianIncentive)})</span>
+                    </>
+                  ) : (
+                    <>
+                      Pengerjaan Luar: <strong className="text-amber-500 font-bold">Biaya Faset {formatRupiah(order.externalFasetCost || 20000)}</strong>
+                    </>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-1.5">
@@ -595,33 +607,81 @@ export const FasetLabModule: React.FC = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Teknisi Lab Faset / RO
-                  </label>
-                  <select
-                    value={technicianId}
-                    onChange={(e) => setTechnicianId(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  >
-                    {fasetTechnicians.map((t) => (
-                      <option key={t.id} value={t.id}>{t.name} ({t.roles.join(', ')})</option>
-                    ))}
-                  </select>
+              <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700 space-y-2.5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <span className="font-bold text-xs text-slate-800 dark:text-slate-200">
+                    Opsi Pengerjaan Faset Lensa
+                  </span>
+                  <div className="flex items-center gap-3 text-xs">
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300 font-semibold">
+                      <input
+                        type="radio"
+                        name="fasetTechMode"
+                        checked={hasTechnician}
+                        onChange={() => setHasTechnician(true)}
+                        className="text-sky-600"
+                      />
+                      <span>Teknisi Internal</span>
+                    </label>
+                    <label className="flex items-center gap-1.5 cursor-pointer text-slate-700 dark:text-slate-300 font-semibold">
+                      <input
+                        type="radio"
+                        name="fasetTechMode"
+                        checked={!hasTechnician}
+                        onChange={() => setHasTechnician(false)}
+                        className="text-sky-600"
+                      />
+                      <span>Tidak Ada Teknisi (Faset Luar)</span>
+                    </label>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                    Insentif Teknisi Lab (Rp)
-                  </label>
-                  <input
-                    type="number"
-                    value={technicianIncentive}
-                    onChange={(e) => setTechnicianIncentive(parseInt(e.target.value, 10) || 0)}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold"
-                  />
-                </div>
+                {hasTechnician ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Pilih Teknisi Lab Faset / RO
+                      </label>
+                      <select
+                        value={technicianId}
+                        onChange={(e) => setTechnicianId(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs"
+                      >
+                        {employees.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name} ({t.roles.join(', ')})</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                        Insentif Teknisi Lab (Rp)
+                      </label>
+                      <input
+                        type="number"
+                        value={technicianIncentive}
+                        onChange={(e) => setTechnicianIncentive(parseInt(e.target.value, 10) || 0)}
+                        className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="pt-1">
+                    <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1 text-xs">
+                      Biaya Faset (External Edging Cost / Pasang)
+                    </label>
+                    <input
+                      type="number"
+                      value={externalFasetCost}
+                      onChange={(e) => setExternalFasetCost(parseInt(e.target.value, 10) || 0)}
+                      placeholder="Misal: 25000"
+                      className="w-full px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-amber-500 text-xs"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5 block">
+                      Biaya faset pihak ketiga/maklon akan otomatis dicatat sebagai pengeluaran lab faset dan HPP.
+                    </span>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "Store": {
+      "title": "Store",
+      "description": "Profil toko optik dan konfigurasi keuangan",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "ownerId": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "ownerId"]
+    },
+    "User": {
+      "title": "User",
+      "description": "Akun pengguna seller atau konsumen",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "username": { "type": "string" },
+        "userType": { "type": "string", "enum": ["seller", "consumer"] },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "storeName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "username", "userType"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Pegawai toko optik dengan konfigurasi role dan gaji komisi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "name": { "type": "string" },
+        "username": { "type": "string" },
+        "password": { "type": "string" },
+        "roles": { "type": "string" },
+        "salaryPeriod": { "type": "string" },
+        "salaryRate": { "type": "number" },
+        "incentivePeriod": { "type": "string" },
+        "incentiveRate": { "type": "number" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "storeId", "name", "username"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Katalog stok frame dan lensa kacamata optik",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "storeId": { "type": "string" },
+        "name": { "type": "string" },
+        "categories": { "type": "string" },
+        "sellingPrice": { "type": "number" },
+        "stockQty": { "type": "number" },
+        "sph": { "type": "string" },
+        "cyl": { "type": "string" },
+        "axis": { "type": "string" },
+        "add": { "type": "string" },
+        "coating": { "type": "string" },
+        "diameter": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "storeId", "name", "sellingPrice"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Pesanan konsumen di marketplace optik",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "orderNo": { "type": "string" },
+        "storeId": { "type": "string" },
+        "customerId": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "orderStatus": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "orderNo", "storeId", "customerId", "totalAmount"]
+    }
+  },
+  "firestore": {
+    "/stores/{storeId}": {
+      "schema": { "$ref": "Store" },
+      "description": "Data toko optik yang terdaftar"
+    },
+    "/users/{userId}": {
+      "schema": { "$ref": "User" },
+      "description": "Data akun pengguna"
+    },
+    "/employees/{employeeId}": {
+      "schema": { "$ref": "Employee" },
+      "description": "Data pegawai toko"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "Product" },
+      "description": "Stok produk kacamata dan lensa"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "Order" },
+      "description": "Pesanan penjualan marketplace"
+    }
+  }
+}
