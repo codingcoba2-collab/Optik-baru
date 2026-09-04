@@ -97,7 +97,7 @@ export const InventoryModule: React.FC = () => {
   const openAddModal = () => {
     setEditingProduct(null);
     setFormError(null);
-    setName('');
+    setName('Lensa Single Vision Blueray');
     setSku(`OPT-${Date.now().toString().slice(-4)}`);
     setCategory('Lensa Kacamata');
     setSubcategory('Super Hydrophobic');
@@ -105,17 +105,67 @@ export const InventoryModule: React.FC = () => {
     setStockQty(20);
     setMinStockAlert(5);
     setBasePurchasePrice(60000);
-    setEdgingCostPerUnit(store.defaultExternalFasetCost || 20000);
+    setEdgingCostPerUnit(store?.defaultExternalFasetCost || 20000);
     setSellingPrice(180000);
     setDescription('');
     setSelectedLensCategories(['Single vision', 'Blueray']);
-    setSph('0.00');
+    setSph('-2.00');
     setCyl('0.00');
     setAxis('0');
     setAdd('0.00');
     setCoating('Super Hydrophobic Blue Cut');
     setDiameter('70mm');
     setIsModalOpen(true);
+  };
+
+  const applyPreset = (presetType: 'blueray' | 'photochromic' | 'progressive' | 'frame') => {
+    setFormError(null);
+    if (presetType === 'blueray') {
+      setName('Lensa Single Vision Blueray 1.56');
+      setCategory('Lensa Kacamata');
+      setSubcategory('Anti Radiasi Gadget');
+      setSelectedLensCategories(['Single vision', 'Blueray']);
+      setSph('-2.00');
+      setCyl('0.00');
+      setBasePurchasePrice(60000);
+      setEdgingCostPerUnit(20000);
+      setSellingPrice(180000);
+      setCoating('Super Hydrophobic Blue Cut');
+    } else if (presetType === 'photochromic') {
+      setName('Lensa Photochromic Grey 1.56');
+      setCategory('Lensa Kacamata');
+      setSubcategory('Transisi UV');
+      setSelectedLensCategories(['Single vision', 'Photochromic']);
+      setSph('0.00');
+      setCyl('0.00');
+      setBasePurchasePrice(90000);
+      setEdgingCostPerUnit(20000);
+      setSellingPrice(250000);
+      setCoating('Fast Shift UV400');
+    } else if (presetType === 'progressive') {
+      setName('Lensa Progressive Wide Vision');
+      setCategory('Lensa Kacamata');
+      setSubcategory('Multifokus Digital');
+      setSelectedLensCategories(['Progressive', 'Blueray']);
+      setSph('0.00');
+      setAdd('+1.50');
+      setBasePurchasePrice(150000);
+      setEdgingCostPerUnit(25000);
+      setSellingPrice(450000);
+      setCoating('Anti Scratch AR');
+    } else if (presetType === 'frame') {
+      setName('Frame Titanium Premium Round');
+      setCategory('Frame Kacamata');
+      setSubcategory('Titanium Ultra Light');
+      setSelectedLensCategories([]);
+      setUnit('Pcs');
+      setBasePurchasePrice(120000);
+      setEdgingCostPerUnit(0);
+      setSellingPrice(320000);
+      setCoating('-');
+      setSph('-');
+      setCyl('-');
+    }
   };
 
   const openEditModal = (p: OpticalProduct) => {
@@ -144,11 +194,12 @@ export const InventoryModule: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setFormError(null);
 
-    if (!name.trim()) {
+    const cleanName = name.trim();
+    if (!cleanName) {
       setFormError('Nama produk / lensa wajib diisi.');
       return;
     }
@@ -161,9 +212,9 @@ export const InventoryModule: React.FC = () => {
         storeId: store?.id || 'store-optik-01',
         storeName: store?.name || 'Optik Jaya Sentosa',
         sku: sku.trim() || `OPT-${Date.now().toString().slice(-4)}`,
-        name: name.trim(),
-        category,
-        subcategory: subcategory || 'Standard',
+        name: cleanName,
+        category: category || 'Lensa Kacamata',
+        subcategory: subcategory.trim() || 'Standard',
         unit: unit || 'Pasang (Pair)',
         stockQty: Math.max(0, Number(stockQty) || 0),
         minStockAlert: Math.max(0, Number(minStockAlert) || 0),
@@ -171,8 +222,8 @@ export const InventoryModule: React.FC = () => {
         edgingCostPerUnit: Math.max(0, Number(edgingCostPerUnit) || 0),
         realHpp,
         sellingPrice: Math.max(0, Number(sellingPrice) || 0),
-        description: description || '',
-        lensCategories: selectedLensCategories || ['Single vision'],
+        description: description.trim() || '',
+        lensCategories: selectedLensCategories && selectedLensCategories.length > 0 ? selectedLensCategories : ['Single vision'],
         sph: sph || '0.00',
         cyl: cyl || '0.00',
         axis: axis || '0',
@@ -497,35 +548,82 @@ export const InventoryModule: React.FC = () => {
         </div>
       )}
 
-      {/* Modal Add / Edit Product */}
+      {/* Modal Add / Edit Product with Sticky Header & Sticky Footer */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-          <div className="max-w-2xl w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl my-6 space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4">
+          <div className="max-w-2xl w-full max-h-[92vh] flex flex-col bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-800 bg-slate-900/95 shrink-0">
               <div className="flex items-center gap-2">
                 <Glasses className="w-5 h-5 text-sky-400" />
-                <h3 className="text-base font-bold text-white">
-                  {editingProduct ? 'Edit Stok Lensa / Frame' : 'Input Stok Produk Baru'}
-                </h3>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white">
+                    {editingProduct ? 'Edit Stok Lensa / Frame' : 'Input Stok Produk Baru'}
+                  </h3>
+                  <p className="text-[11px] text-slate-400">Tambahkan stok ke katalog toko & marketplace</p>
+                </div>
               </div>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
+            {/* Modal Body (Scrollable) */}
+            <form id="inventory-form" onSubmit={handleSave} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 text-xs overscroll-contain">
+              {/* Quick Preset Buttons (Only when adding new product) */}
+              {!editingProduct && (
+                <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-750 space-y-1.5">
+                  <span className="text-[11px] font-bold text-sky-400 flex items-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    Pilihan Preset Cepat (1-Klik Isi Form):
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('blueray')}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-sky-600/30 text-slate-300 hover:text-sky-300 border border-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                    >
+                      ⚡ Lensa Blueray 1.56
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('photochromic')}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-amber-600/30 text-slate-300 hover:text-amber-300 border border-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                    >
+                      ☀️ Lensa Photochromic UV
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('progressive')}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-purple-600/30 text-slate-300 hover:text-purple-300 border border-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                    >
+                      👓 Lensa Progresif Digital
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyPreset('frame')}
+                      className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-emerald-600/30 text-slate-300 hover:text-emerald-300 border border-slate-700 text-[11px] font-medium transition-colors cursor-pointer"
+                    >
+                      🕶️ Frame Titanium
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Basic Fields */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block font-bold text-slate-300 mb-1">Nama Produk / Lensa</label>
+                  <label className="block font-bold text-slate-300 mb-1">Nama Produk / Lensa *</label>
                   <input
                     type="text"
-                    required
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="Contoh: Lensa Essilor Crizal Sapphire"
                     className="w-full px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-sky-500"
                   />
@@ -756,27 +854,30 @@ export const InventoryModule: React.FC = () => {
                   />
                 </div>
               </div>
+            </form>
 
-              {/* Actions & Error */}
+            {/* Modal Footer: Sticky at bottom, ALWAYS VISIBLE & EASY TO TAP */}
+            <div className="p-3.5 sm:p-4 border-t border-slate-800 bg-slate-900/95 flex flex-col sm:flex-row items-center gap-2.5 shrink-0">
               {formError && (
-                <div className="p-3 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-medium">
-                  {formError}
+                <div className="w-full sm:flex-1 p-2.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{formError}</span>
                 </div>
               )}
-
-              <div className="flex gap-2 pt-3">
+              <div className="flex items-center gap-2 w-full sm:w-auto sm:ml-auto">
                 <button
                   type="button"
                   disabled={isSaving}
                   onClick={() => setIsModalOpen(false)}
-                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold cursor-pointer disabled:opacity-50 text-xs transition-colors"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
+                  type="button"
+                  onClick={() => handleSave()}
                   disabled={isSaving}
-                  className="flex-1 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  className="flex-1 sm:flex-initial px-5 py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 active:bg-sky-700 text-white font-bold shadow-lg shadow-sky-600/30 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs min-h-[42px] transition-all"
                 >
                   {isSaving ? (
                     <>
@@ -788,7 +889,7 @@ export const InventoryModule: React.FC = () => {
                   )}
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

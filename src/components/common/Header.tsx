@@ -17,10 +17,10 @@ import {
   Wrench,
   ShoppingBag,
   User,
-  LogOut
+  LogOut,
+  RefreshCw
 } from 'lucide-react';
 import { PwaInstallModal } from './PwaInstallModal';
-import { ZoomControls } from './ZoomControls';
 
 interface HeaderProps {
   activeTab: string;
@@ -43,6 +43,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
     isDark,
     setIsDark,
     resetDataToDefault,
+    hasAppUpdate,
+    checkAndApplyUpdate,
+    appVersion
   } = useApp();
 
   const [isStoreOpen, setIsStoreOpen] = useState(false);
@@ -105,28 +108,28 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16 gap-2 sm:gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors pt-[max(env(safe-area-inset-top,16px),16px)] sm:pt-2.5 pb-2">
+        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between min-h-14 gap-1.5 sm:gap-4">
             {/* Brand Logo & Name */}
-            <div className="flex items-center gap-3 shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div
                 onClick={() => setActiveTab(currentUser?.userType === 'consumer' ? 'marketplace' : 'dashboard')}
-                className="cursor-pointer flex items-center gap-2.5 group"
+                className="cursor-pointer flex items-center gap-2 group"
               >
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20 group-hover:scale-105 transition-transform shrink-0">
                   <Glasses className="w-5 h-5 stroke-[2.2]" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+                  <div className="flex items-center gap-1">
+                    <span className="text-base sm:text-lg font-black tracking-tight text-slate-900 dark:text-white">
                       eye <span className="text-sky-500">hub</span>
                     </span>
-                    <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
+                    <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20">
                       Optics
                     </span>
                   </div>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block truncate max-w-[200px]">
+                  <p className="text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 font-medium hidden md:block truncate max-w-[180px]">
                     {store?.name || 'Optik Jaya Sentosa'}
                   </p>
                 </div>
@@ -134,17 +137,16 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
             </div>
 
             {/* Center Controls: Store Switcher & Role Badge */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
               {/* Store Switcher Dropdown */}
               <div className="relative">
                 <button
                   onClick={() => setIsStoreOpen(!isStoreOpen)}
-                  className="flex items-center gap-1.5 py-1.5 px-2.5 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-800/80 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="flex items-center gap-1 sm:gap-1.5 py-1.5 px-2 sm:px-2.5 rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-800/80 text-[11px] sm:text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors max-w-[120px] sm:max-w-[170px]"
                 >
                   <Store className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                  <span className="hidden md:inline max-w-[140px] truncate">{store?.name || 'Toko'}</span>
-                  <span className="md:hidden">Toko</span>
-                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                  <span className="truncate">{store?.name || 'Toko'}</span>
+                  <ChevronDown className="w-3 h-3 text-slate-400 shrink-0" />
                 </button>
 
                 {isStoreOpen && (
@@ -250,14 +252,39 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                       </div>
                     </div>
 
-                    {/* Logout Button */}
-                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700">
+                    {/* Actions: Update, Reset & Logout */}
+                    <div className="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1">
+                      <button
+                        onClick={() => {
+                          setIsUserOpen(false);
+                          checkAndApplyUpdate();
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg text-xs font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-50 dark:hover:bg-sky-950/20 flex items-center justify-between transition-colors cursor-pointer"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <RefreshCw className={`w-3.5 h-3.5 ${hasAppUpdate ? 'animate-spin' : ''}`} />
+                          <span>Perbarui Sistem</span>
+                        </div>
+                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-sky-100 dark:bg-sky-900/40 font-bold">
+                          v{appVersion}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsUserOpen(false);
+                          setIsResetConfirmOpen(true);
+                        }}
+                        className="w-full px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 hover:text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" />
+                        <span>Reset Data Default</span>
+                      </button>
                       <button
                         onClick={() => {
                           logout();
                           setIsUserOpen(false);
                         }}
-                        className="w-full px-3 py-2 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                        className="w-full px-3 py-1.5 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5" />
                         <span>Keluar Sesi (Logout)</span>
@@ -268,17 +295,28 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               </div>
             </div>
 
-            {/* Right Tools: Zoom, Palette, DarkMode, PWA, Reset, Logout */}
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              {/* Zoom In / Zoom Out Controls */}
-              <ZoomControls />
+            {/* Right Tools: Update, Palette, DarkMode, PWA, Reset, Logout */}
+            <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+              {/* App Update Button (Pulsing if update available) */}
+              <button
+                onClick={checkAndApplyUpdate}
+                title={hasAppUpdate ? 'Versi baru siap dipasang! Klik untuk update tanpa blank' : `Update Sistem (v${appVersion})`}
+                className={`p-1.5 sm:px-2.5 sm:py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                  hasAppUpdate
+                    ? 'bg-amber-500 text-white shadow-md shadow-amber-500/30 animate-pulse'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                }`}
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-sky-500 ${hasAppUpdate ? 'animate-spin text-white' : ''}`} />
+                <span className="hidden md:inline">{hasAppUpdate ? 'Update Tersedia!' : 'Update'}</span>
+              </button>
 
               {/* Palette Theme Selector */}
               <div className="relative">
                 <button
                   onClick={() => setIsThemeOpen(!isThemeOpen)}
                   title="Pilih Palet Tema Toko"
-                  className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  className="p-1.5 sm:p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <Palette className="w-4 h-4 text-sky-500" />
                 </button>
@@ -313,7 +351,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               <button
                 onClick={() => setIsDark(!isDark)}
                 title={isDark ? 'Beralih ke Light Mode' : 'Beralih ke Dark Mode'}
-                className="p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-1.5 sm:p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
               >
                 {isDark ? (
                   <Sun className="w-4 h-4 text-amber-400" />
@@ -332,11 +370,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
                 <span>PWA</span>
               </button>
 
-              {/* Reset Data Confirmation Button */}
+              {/* Reset Data Confirmation Button (Shown on md+ screens, available in user menu for mobile) */}
               <button
                 onClick={() => setIsResetConfirmOpen(true)}
                 title="Reset Data Toko ke Default"
-                className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
+                className="hidden md:flex p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"
               >
                 <RotateCcw className="w-4 h-4" />
               </button>
@@ -345,7 +383,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
               <button
                 onClick={logout}
                 title="Keluar dari Sesi Sistem"
-                className="p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors cursor-pointer"
               >
                 <LogOut className="w-4 h-4" />
               </button>

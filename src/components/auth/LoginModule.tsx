@@ -22,9 +22,9 @@ import {
   HardDrive,
   Check,
   X,
-  ShieldCheck
+  ShieldCheck,
+  MessageSquare
 } from 'lucide-react';
-import { ZoomControls } from '../common/ZoomControls';
 
 export const LoginModule: React.FC = () => {
   const {
@@ -169,7 +169,7 @@ export const LoginModule: React.FC = () => {
     setInputOtp('');
     setOtpCountdown(60);
     setHasSimulatedNotification(true);
-    showToast(`Pesan OTP dikirimkan ke nomor ${target}: ${code}`, 'success');
+    showToast(`Kode OTP verifikasi resmi dikirim dari WhatsApp 0895621670403. Kode: ${code}`, 'success');
   };
 
   const handleAutoFillOtp = () => {
@@ -243,40 +243,37 @@ export const LoginModule: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-4 sm:p-6 lg:p-8 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-3 sm:p-6 lg:p-8 pt-[max(env(safe-area-inset-top,22px),22px)] relative overflow-x-hidden">
       {/* Background Decorative Lighting */}
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-sky-600/15 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
 
-      {/* Top Bar: Brand, Update Feature, ZoomControls & Theme Toggle */}
-      <div className="max-w-6xl w-full mx-auto flex flex-wrap items-center justify-between gap-3 z-10">
-        <div className="flex items-center gap-2.5">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20">
+      {/* Top Bar: Brand, Update Feature & Theme Toggle */}
+      <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-2 z-10">
+        <div className="flex items-center gap-2 sm:gap-2.5">
+          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
             <Glasses className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
-            <div className="text-lg font-black tracking-tight flex items-center gap-1">
+            <div className="text-base sm:text-lg font-black tracking-tight flex items-center gap-1">
               <span>eye</span>
               <span className="text-sky-400">hub</span>
-              <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 ml-1">
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/20 ml-1">
                 Optics
               </span>
             </div>
-            <p className="text-[10px] text-slate-400">Sistem Operasional Toko & Marketplace Optik</p>
+            <p className="text-[10px] text-slate-400 hidden xs:block">Sistem Operasional Toko & Marketplace Optik</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* In-app Zoom Controls */}
-          <ZoomControls />
-
+        <div className="flex items-center gap-2 shrink-0">
           {/* Update App Button on Login Screen */}
           <button
             onClick={() => setIsUpdateModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/30 text-xs font-bold transition-all shadow-sm cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5 text-sky-400" />
-            <span>Update App</span>
+            <span className="hidden sm:inline">Update App</span>
             <span className="text-[9px] font-mono px-1 py-0.2 rounded bg-sky-400/20 text-sky-300 font-bold">
               v2.4.0
             </span>
@@ -624,44 +621,69 @@ export const LoginModule: React.FC = () => {
         </div>
       </div>
 
-      {/* OTP Verification Modal with Realistic WhatsApp/SMS Simulation */}
+      {/* OTP Verification Modal with WhatsApp Gateway 0895621670403 */}
       {isOtpModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
             <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-2 shadow-sm">
                 <Smartphone className="w-6 h-6" />
               </div>
-              <h3 className="text-base font-bold text-white">Verifikasi OTP Nomor HP</h3>
+              <h3 className="text-base font-bold text-white">Verifikasi OTP WhatsApp</h3>
               <p className="text-xs text-slate-400 mt-1">
-                Terkirim ke nomor HP: <span className="font-mono font-bold text-emerald-400">{otpTargetPhone}</span>
+                Pesan OTP resmi otomatis dikirimkan ke akun WhatsApp Anda.
               </p>
+              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold mt-2">
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                <span>Pengirim Resmi: WhatsApp 0895621670403</span>
+              </div>
             </div>
 
-            {/* Realistic WhatsApp / SMS Simulation Bubble */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-2">
+            {/* Realistic WhatsApp Notification Bubble */}
+            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>Pesan Masuk (SMS / WhatsApp)</span>
+                  <span>Pesan Masuk WhatsApp Gateway</span>
                 </div>
                 <span className="text-[10px] text-slate-400 font-mono">Baru saja</span>
               </div>
-              <div className="p-2.5 rounded-lg bg-slate-900/80 border border-slate-800 text-slate-200 leading-relaxed font-sans">
-                <p className="text-[11px] text-slate-400 mb-0.5">Dari: <span className="text-emerald-400 font-mono font-bold">{otpTargetPhone}</span></p>
-                <p className="text-xs">
-                  "Halo, kode OTP verifikasi pendaftaran akun optik Anda adalah <span className="font-mono font-black text-emerald-400 text-sm tracking-widest">{generatedOtp}</span>. Jangan berikan kode ini kepada siapapun."
+              <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 leading-relaxed font-sans space-y-1.5">
+                <div className="flex items-center justify-between text-[11px] pb-1 border-b border-slate-800">
+                  <span className="text-slate-400">Dari WhatsApp:</span>
+                  <span className="text-emerald-400 font-mono font-bold">0895621670403 (Optik)</span>
+                </div>
+                <p className="text-xs text-slate-300">
+                  "Halo, kode verifikasi OTP akun <span className="font-bold text-white">eye hub Optics</span> Anda adalah:
+                </p>
+                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
+                  <span className="font-mono font-black text-emerald-400 text-lg tracking-[0.25em]">
+                    {generatedOtp}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 italic">
+                  *Demi keamanan, jangan bagikan kode ini kepada pihak mana pun.
                 </p>
               </div>
-              <div className="flex gap-2 pt-1">
+
+              <div className="flex flex-col sm:flex-row gap-2 pt-1">
                 <button
                   type="button"
                   onClick={handleAutoFillOtp}
-                  className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[11px] flex items-center justify-center gap-1 cursor-pointer transition-colors shadow-sm"
+                  className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-md shadow-emerald-600/30"
                 >
                   <Check className="w-3.5 h-3.5" />
                   <span>Tempel Kode Otomatis ({generatedOtp})</span>
                 </button>
+                <a
+                  href={`https://wa.me/62895621670403?text=Halo%20Admin%20Optik,%20saya%20meminta%20kode%20OTP%20pendaftaran%20eye%20hub:%20${generatedOtp}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1 transition-colors text-center"
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Cek WhatsApp</span>
+                </a>
               </div>
             </div>
 
@@ -679,11 +701,11 @@ export const LoginModule: React.FC = () => {
               />
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setIsOtpModalOpen(false)}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
+                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
               >
                 Batal
               </button>
@@ -691,7 +713,7 @@ export const LoginModule: React.FC = () => {
                 type="button"
                 onClick={handleVerifyOtpAndComplete}
                 disabled={inputOtp.length !== 6 || isLoading}
-                className="flex-1 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 cursor-pointer shadow-md shadow-emerald-600/30"
+                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 cursor-pointer shadow-md shadow-emerald-600/30"
               >
                 {isLoading ? 'Memverifikasi...' : 'Verifikasi & Masuk'}
               </button>

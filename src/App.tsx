@@ -97,9 +97,9 @@ const AppContent: React.FC = () => {
       {/* Top Main Header */}
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
-      {/* Primary Navigation Bar (Sticky Desktop & Tablet Sub-Header) */}
-      <div className="sticky top-16 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2 no-scrollbar">
+      {/* Primary Navigation Bar (Responsive Sub-Header) */}
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,14px))] sm:top-16 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2 pr-6 sm:pr-2 no-scrollbar scroll-smooth">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;

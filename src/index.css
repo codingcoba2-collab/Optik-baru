@@ -25,6 +25,12 @@
     -webkit-text-size-adjust: 100%;
     touch-action: manipulation;
     overscroll-behavior-y: none;
+    zoom: 1 !important;
+  }
+
+  /* Safe Area / Notch (Poni HP) top padding */
+  .safe-notch-top {
+    padding-top: max(1.125rem, env(safe-area-inset-top, 18px));
   }
 
   #root {
