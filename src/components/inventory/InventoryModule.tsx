@@ -281,7 +281,11 @@ export const InventoryModule: React.FC = () => {
     setQuickStockProduct(null);
   };
 
-  const filteredProducts = products.filter((p) => {
+  const storeProducts = products.filter(
+    (p) => p.storeId === store.id || (!p.storeId && store.id === 'store-optik-01')
+  );
+
+  const filteredProducts = storeProducts.filter((p) => {
     const matchesCategory = selectedCategory === 'Semua' || p.category === selectedCategory;
     const matchesLens =
       selectedLensFilter === 'Semua' ||
@@ -294,8 +298,8 @@ export const InventoryModule: React.FC = () => {
     return matchesCategory && matchesLens && matchesSearch;
   });
 
-  const totalInventoryAsset = products.reduce((sum, p) => sum + p.realHpp * p.stockQty, 0);
-  const totalStockUnits = products.reduce((sum, p) => sum + p.stockQty, 0);
+  const totalInventoryAsset = storeProducts.reduce((sum, p) => sum + p.realHpp * p.stockQty, 0);
+  const totalStockUnits = storeProducts.reduce((sum, p) => sum + p.stockQty, 0);
 
   return (
     <div className="space-y-6">

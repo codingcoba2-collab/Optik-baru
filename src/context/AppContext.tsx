@@ -18,7 +18,9 @@ import {
   MarketplaceOrder,
   MarketplaceOrderItem,
   UserAccount,
-  UserType
+  UserType,
+  HomeVisitRequest,
+  HomeVisitStatus
 } from '../types';
 import {
   INITIAL_STORE,
@@ -121,6 +123,13 @@ interface AppContextType {
   createMarketplaceOrder: (orderData: any) => Promise<any>;
   confirmPaymentTransfer: (orderId: string, proofNote?: string) => Promise<void>;
   updateMarketplaceOrderStatus: (orderId: string, status: MarketplaceOrder['orderStatus']) => Promise<void>;
+  cancelMarketplaceOrder: (orderId: string, cancelReason?: string) => Promise<void>;
+
+  // Home Visit Service (Layanan Periksa Mata ke Rumah)
+  homeVisitRequests: HomeVisitRequest[];
+  addHomeVisitRequest: (data: Omit<HomeVisitRequest, 'id' | 'requestNo' | 'createdAt' | 'status'>) => Promise<HomeVisitRequest>;
+  updateHomeVisitStatus: (id: string, status: HomeVisitStatus, staffName?: string) => Promise<void>;
+  cancelHomeVisitRequest: (id: string, reason?: string) => Promise<void>;
   isOnline: boolean;
 
   // Sales Orders (Penjualan Live & Toko)
@@ -262,6 +271,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [marketplaceOrders, setMarketplaceOrders] = useState<MarketplaceOrder[]>(
     initial?.marketplaceOrders || INITIAL_MARKETPLACE_ORDERS
   );
+  const [homeVisitRequests, setHomeVisitRequests] = useState<HomeVisitRequest[]>(() => {
+    try {
+      const saved = localStorage.getItem('eyehub_home_visits');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return initial?.homeVisitRequests || [];
+  });
   const [cart, setCart] = useState<MarketplaceOrderItem[]>(
     initial?.cart || []
   );
@@ -391,6 +407,44 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     root.style.setProperty('--color-sky-900', p.p900);
     root.style.setProperty('--color-sky-950', p.p950);
 
+    // Inject dynamic stylesheet to guarantee override across all levels
+    let styleTag = document.getElementById('eyehub-dynamic-palette') as HTMLStyleElement | null;
+    if (!styleTag) {
+      styleTag = document.createElement('style');
+      styleTag.id = 'eyehub-dynamic-palette';
+      document.head.appendChild(styleTag);
+    }
+    styleTag.textContent = `
+      :root, :root.dark, html, html.dark, body, .dark {
+        --color-sky-50: ${p.p50} !important;
+        --color-sky-100: ${p.p100} !important;
+        --color-sky-200: ${p.p200} !important;
+        --color-sky-300: ${p.p300} !important;
+        --color-sky-400: ${p.p400} !important;
+        --color-sky-500: ${p.p500} !important;
+        --color-sky-600: ${p.p600} !important;
+        --color-sky-700: ${p.p700} !important;
+        --color-sky-800: ${p.p800} !important;
+        --color-sky-900: ${p.p900} !important;
+        --color-sky-950: ${p.p950} !important;
+        --palette-50: ${p.p50} !important;
+        --palette-100: ${p.p100} !important;
+        --palette-200: ${p.p200} !important;
+        --palette-300: ${p.p300} !important;
+        --palette-400: ${p.p400} !important;
+        --palette-500: ${p.p500} !important;
+        --palette-600: ${p.p600} !important;
+        --palette-700: ${p.p700} !important;
+        --palette-800: ${p.p800} !important;
+        --palette-900: ${p.p900} !important;
+        --palette-950: ${p.p950} !important;
+        --primary-accent: ${p.primary} !important;
+        --accent-color: ${p.primary} !important;
+        --accent-hover: ${p.hover} !important;
+        --accent-soft: ${p.soft} !important;
+      }
+    `;
+
     localStorage.setItem('eyehub_dark', String(isDark));
     localStorage.setItem('eyehub_theme', theme);
   }, [isDark, theme]);
@@ -416,6 +470,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       adsCampaigns,
       discountCoupons,
       marketplaceOrders,
+      homeVisitRequests,
       cart,
       salesOrders,
       attendance,
@@ -426,6 +481,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+      localStorage.setItem('eyehub_home_visits', JSON.stringify(homeVisitRequests));
     } catch (e) {
       console.warn('Storage saving error:', e);
     }
@@ -439,6 +495,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     adsCampaigns,
     discountCoupons,
     marketplaceOrders,
+    homeVisitRequests,
     cart,
     salesOrders,
     attendance,
@@ -555,6 +612,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
       setCurrentUser(normalizedUser);
       if (normalizedUser.role) setCurrentRole(normalizedUser.role);
+      if (normalizedUser.storeId) {
+        setActiveStoreId(normalizedUser.storeId);
+      }
       showToast(`Selamat datang, ${normalizedUser.fullName || normalizedUser.username}!`, 'success');
       return { success: true };
     }
@@ -579,49 +639,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       };
       setCurrentUser(staffUser);
       setCurrentRole(staffUser.role || 'pelayan');
+      if (existingEmployee.storeId) {
+        setActiveStoreId(existingEmployee.storeId);
+      }
       showToast(`Selamat datang ${existingEmployee.name} (${existingEmployee.roles.join(', ')})!`, 'success');
       return { success: true };
     }
 
-    // If new seller login with custom store name and username, auto-create seller profile
-    const newStoreId = 'store-' + Date.now().toString(36);
-    const newStoreObj: StoreAccount = {
-      ...INITIAL_STORE,
-      id: newStoreId,
-      name: storeName.trim() || 'Optik ' + username,
-      phone: '0812' + Math.floor(10000000 + Math.random() * 90000000)
+    // Strict authentication: Do NOT auto-create! User must explicitly register
+    return {
+      success: false,
+      message: 'Akun seller / toko belum terdaftar! Silakan klik "Daftar Akun Baru" terlebih dahulu.'
     };
-
-    const newSellerId = 'seller-' + Date.now().toString(36);
-    const newSellerUser: UserAccount = {
-      id: newSellerId,
-      uid: newSellerId,
-      username: username.trim(),
-      password: password || '123456',
-      fullName: username.trim(),
-      name: username.trim(),
-      userType: 'seller',
-      phone: newStoreObj.phone,
-      storeId: newStoreId,
-      storeName: newStoreObj.name,
-      role: 'owner',
-      roles: ['owner'],
-      createdAt: new Date().toISOString()
-    };
-
-    setUsers((prev) => [...prev, newSellerUser]);
-    createStore(newStoreObj);
-    setCurrentUser(newSellerUser);
-    setCurrentRole('owner');
-
-    try {
-      setDoc(doc(db, 'users', newSellerUser.id), newSellerUser);
-    } catch (e) {
-      console.warn('Firestore user save notice:', e);
-    }
-
-    showToast(`Toko "${newStoreObj.name}" berhasil dibuat. Selamat datang Owner!`, 'success');
-    return { success: true };
   };
 
   const loginConsumer = (username: string, password?: string) => {
@@ -645,33 +674,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       return { success: true };
     }
 
-    // Create consumer user on the fly if brand new
-    const newConsumerId = 'cust-' + Date.now().toString(36);
-    const newConsumer: UserAccount = {
-      id: newConsumerId,
-      uid: newConsumerId,
-      username: username.trim(),
-      password: password || '123456',
-      fullName: username.trim(),
-      name: username.trim(),
-      userType: 'consumer',
-      phone: '08' + Math.floor(1000000000 + Math.random() * 900000000),
-      role: 'consumer' as any,
-      roles: ['consumer' as any],
-      createdAt: new Date().toISOString()
+    // Strict authentication: Do NOT auto-create! User must explicitly register
+    return {
+      success: false,
+      message: 'Akun konsumen belum terdaftar! Silakan klik "Daftar Akun Baru" terlebih dahulu.'
     };
-
-    setUsers((prev) => [...prev, newConsumer]);
-    setCurrentUser(newConsumer);
-
-    try {
-      setDoc(doc(db, 'users', newConsumer.id), newConsumer);
-    } catch (e) {
-      console.warn('Firestore consumer save notice:', e);
-    }
-
-    showToast(`Akun konsumen "${username}" siap digunakan untuk belanja optik!`, 'success');
-    return { success: true };
   };
 
   const registerUser = async (userData: Omit<UserAccount, 'id' | 'createdAt'>) => {
@@ -698,6 +705,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         phone: userData.phone
       };
       await createStore(newStoreObj);
+      setActiveStoreId(storeId);
       fullUser.role = 'owner';
       setCurrentRole('owner');
     }
@@ -721,28 +729,19 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     userType: UserType,
     storeNameIfSeller?: string
   ) => {
-    const username = email.split('@')[0] || 'user_' + Date.now().toString(36);
-    const phone = email.includes('danial')
-      ? '0895621670403'
-      : '08' + Math.floor(1000000000 + Math.random() * 900000000);
-
     const existing = users.find((u) => u.email === email && u.userType === userType);
     if (existing) {
       setCurrentUser(existing);
       if (existing.role) setCurrentRole(existing.role);
+      if (existing.storeId) setActiveStoreId(existing.storeId);
       showToast(`Masuk dengan Google berhasil: ${fullName}`, 'success');
       return { success: true };
     }
 
-    return await registerUser({
-      username,
-      fullName,
-      email,
-      phone,
-      userType,
-      storeName: storeNameIfSeller || (userType === 'seller' ? 'Optik Jaya Sentosa' : undefined),
-      role: userType === 'seller' ? 'owner' : undefined
-    });
+    return {
+      success: false,
+      message: 'Akun Google ini belum terdaftar di sistem. Silakan pilih tab "Daftar Akun Baru" terlebih dahulu.'
+    };
   };
 
   const loginWithGooglePopup = async (userType: UserType, storeNameIfSeller?: string) => {
@@ -1119,13 +1118,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
     const isDirectConfirm = orderData.paymentMethod === 'cod';
 
+    // Per user request: Initial order status is 'menunggu_konfirmasi'.
+    // Stock is NOT reduced here. It is reduced only when seller sets status to 'selesai'.
     const newOrder: MarketplaceOrder = {
       ...orderData,
       id,
       orderNo,
       vaNumber,
       paymentStatus: isDirectConfirm ? 'terverifikasi' : 'menunggu_pembayaran',
-      orderStatus: isDirectConfirm ? 'diproses' : 'menunggu_pembayaran',
+      orderStatus: 'menunggu_konfirmasi',
       createdAt: new Date().toISOString()
     };
 
@@ -1138,40 +1139,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.warn('Firestore order notice:', e);
     }
 
-    // Deduct stocks automatically from seller inventory
-    for (const item of orderData.items) {
-      const q = (item as any).quantity || item.qty || 1;
-      await adjustStock(item.productId, -q);
-    }
-
-    // If order is direct confirmed, also add to sale orders
-    if (isDirectConfirm) {
-      const saleItems = orderData.items.map(i => ({
-        productId: i.productId,
-        productName: i.productName,
-        qty: (i as any).quantity || i.qty || 1,
-        price: i.price,
-        hpp: Math.round(i.price * 0.5)
-      }));
-      const newSale: SaleOrder = {
-        id: 'sale-' + Date.now().toString(36),
-        invoiceNo: orderNo,
-        date: new Date().toISOString().split('T')[0],
-        storeId: orderData.storeId,
-        channel: 'Eye Hub Marketplace',
-        orderFormat: 'Satuan',
-        customerName: orderData.customerName,
-        items: saleItems,
-        grossAmount: orderData.totalAmount,
-        marketplaceAdminFee: Math.round(orderData.totalAmount * (store.marketplaceAdminFeePercent ? store.marketplaceAdminFeePercent / 100 : 0.05)),
-        serviceFee: store.serviceFeePerOrder || 1000,
-        netRevenue: Math.round(orderData.totalAmount * 0.95) - (store.serviceFeePerOrder || 1000),
-        totalHpp: Math.round(orderData.totalAmount * 0.5),
-        notes: `Transaksi Eye Hub: ${orderData.shippingAddress}`
-      };
-      setSalesOrders((prev) => [newSale, ...prev]);
-    }
-
+    showToast(`Pesanan #${orderNo} berhasil dibuat! Menunggu konfirmasi seller.`, 'success');
     return { success: true, order: newOrder };
   };
 
@@ -1201,8 +1169,8 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       totalAmount: orderData.totalAmount,
       paymentMethod: orderData.paymentMethod?.toLowerCase() === 'transfer' ? 'bank_transfer' : orderData.paymentMethod?.toLowerCase() === 'qris' ? 'qris' : 'cod',
       selectedBank: orderData.selectedBank,
-      courier: orderData.courier,
-      shippingRateType: orderData.shippingRateType
+      courier: orderData.courier || 'Kurir Toko',
+      shippingRateType: orderData.shippingRateType || 'Kurir Toko (Wilayah Sekitar)'
     });
   };
 
@@ -1213,7 +1181,6 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     const updatedOrder: MarketplaceOrder = {
       ...order,
       paymentStatus: 'terverifikasi',
-      orderStatus: 'diproses',
       paidAt: new Date().toISOString(),
       transferProofUrl: proofNote || 'Bukti transfer tervalidasi via Bank gateway'
     };
@@ -1228,77 +1195,169 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       console.warn('Firestore verify order notice:', e);
     }
 
-    // Auto-create Sale Order for seller
-    const saleItems = order.items.map(i => ({
-      productId: i.productId,
-      productName: i.productName,
-      qty: i.qty,
-      price: i.price,
-      hpp: Math.round(i.price * 0.5)
-    }));
-    const newSale: SaleOrder = {
-      id: 'sale-' + Date.now().toString(36),
-      invoiceNo: order.orderNo,
-      date: new Date().toISOString().split('T')[0],
-      storeId: order.storeId,
-      channel: 'Marketplace App',
-      orderFormat: 'Satuan',
-      customerName: order.customerName,
-      items: saleItems,
-      grossAmount: order.totalAmount,
-      marketplaceAdminFee: Math.round(order.totalAmount * 0.085),
-      serviceFee: 1000,
-      netRevenue: Math.round(order.totalAmount * 0.915) - 1000,
-      totalHpp: Math.round(order.totalAmount * 0.5),
-      notes: `Transfer Terverifikasi (${order.selectedBank || order.paymentMethod.toUpperCase()})`
-    };
-    setSalesOrders((prev) => [newSale, ...prev]);
-
-    // Check if there is a prescription, if so, auto-create a Lab Faset Order!
-    const prescriptionItem = order.items.find(i => i.prescription);
-    if (prescriptionItem && prescriptionItem.prescription) {
-      const fasetSPK: FasetLabOrder = {
-        id: 'fst-' + Date.now().toString(36),
-        orderNumber: 'FST-' + Math.floor(100000 + Math.random() * 900000),
-        date: new Date().toISOString().split('T')[0],
-        storeId: order.storeId,
-        customerName: order.customerName,
-        phone: order.customerPhone,
-        frameName: prescriptionItem.productName,
-        lensType: prescriptionItem.selectedCategories?.join(' + ') || 'Lensa Preskripsi Custom',
-        prescription: {
-          rightEye: prescriptionItem.prescription.od,
-          leftEye: prescriptionItem.prescription.os,
-          pd: prescriptionItem.prescription.pd || '62mm',
-          lensTypeRequested: prescriptionItem.selectedCategories?.join(' ') || 'Standard Single Vision'
-        },
-        hasTechnician: store.hasInternalTechnician,
-        externalFasetCost: store.defaultExternalFasetCost || 20000,
-        status: 'Antrean Lab',
-        technicianIncentive: 10000,
-        notes: `Pesanan Marketplace Order #${order.orderNo}`
-      };
-      setFasetOrders((prev) => [fasetSPK, ...prev]);
-      try {
-        await setDoc(doc(db, 'faset_orders', fasetSPK.id), fasetSPK);
-      } catch (e) {
-        console.warn('Firestore faset SPK notice:', e);
-      }
-    }
-
-    showToast(`Pembayaran Order #${order.orderNo} terverifikasi! Pesanan kini diproses oleh optik.`, 'success');
+    showToast(`Pembayaran Order #${order.orderNo} terverifikasi!`, 'success');
   };
 
   const updateMarketplaceOrderStatus = async (orderId: string, status: MarketplaceOrder['orderStatus']) => {
+    const order = marketplaceOrders.find((o) => o.id === orderId);
+    if (!order) return;
+
+    const isTransitioningToSelesai = status === 'selesai' && order.orderStatus !== 'selesai';
+
+    const updatedOrder: MarketplaceOrder = {
+      ...order,
+      orderStatus: status,
+      completedAt: isTransitioningToSelesai ? new Date().toISOString() : order.completedAt
+    };
+
     setMarketplaceOrders((prev) =>
-      prev.map((o) => (o.id === orderId ? { ...o, orderStatus: status } : o))
+      prev.map((o) => (o.id === orderId ? updatedOrder : o))
     );
+
     try {
-      await setDoc(doc(db, 'orders', orderId), { orderStatus: status }, { merge: true });
+      await setDoc(doc(db, 'orders', orderId), updatedOrder, { merge: true });
     } catch (e) {
       console.warn('Firestore update order status notice:', e);
     }
-    showToast(`Status pesanan diubah ke "${status}"`, 'info');
+
+    // USER REQUIREMENT 6: "setelah pesanan di set selesai baru stok toko berkurang"
+    if (isTransitioningToSelesai) {
+      for (const item of order.items) {
+        const q = (item as any).quantity || item.qty || 1;
+        await adjustStock(item.productId, -q);
+      }
+
+      // Record in salesOrders for seller bookkeeping
+      const saleItems = order.items.map((i) => ({
+        productId: i.productId,
+        productName: i.productName,
+        qty: (i as any).quantity || i.qty || 1,
+        price: i.price,
+        hpp: Math.round(i.price * 0.5)
+      }));
+
+      const newSale: SaleOrder = {
+        id: 'sale-' + Date.now().toString(36),
+        invoiceNo: order.orderNo,
+        date: new Date().toISOString().split('T')[0],
+        storeId: order.storeId,
+        channel: 'Eye Hub Marketplace',
+        orderFormat: 'Satuan',
+        customerName: order.customerName || order.buyerName || 'Konsumen',
+        items: saleItems,
+        grossAmount: order.totalAmount,
+        marketplaceAdminFee: Math.round(order.totalAmount * (store.marketplaceAdminFeePercent ? store.marketplaceAdminFeePercent / 100 : 0.05)),
+        serviceFee: store.serviceFeePerOrder || 1000,
+        netRevenue: Math.round(order.totalAmount * 0.95) - (store.serviceFeePerOrder || 1000),
+        totalHpp: Math.round(order.totalAmount * 0.5),
+        notes: `Pesanan Selesai - Kurir Toko: ${order.shippingAddress}`
+      };
+      setSalesOrders((prev) => [newSale, ...prev]);
+
+      showToast(`Pesanan #${order.orderNo} SELESAI! Stok produk otomatis dipotong & penjualan tercatat di kasir.`, 'success');
+    } else if (status === 'sedang_difaset') {
+      showToast(`Pesanan #${order.orderNo} dikonfirmasi & masuk proses faset lab optik.`, 'info');
+    } else if (status === 'sedang_diantar') {
+      showToast(`Pesanan #${order.orderNo} diserahkan ke kurir toko & sedang diantar.`, 'info');
+    } else if (status === 'dibatalkan') {
+      showToast(`Pesanan #${order.orderNo} telah dibatalkan.`, 'warning');
+    } else {
+      showToast(`Status pesanan #${order.orderNo} diperbarui ke "${status}".`, 'info');
+    }
+  };
+
+  const cancelMarketplaceOrder = async (orderId: string, cancelReason?: string) => {
+    const order = marketplaceOrders.find((o) => o.id === orderId);
+    if (!order) return;
+    if (order.orderStatus === 'selesai') {
+      showToast('Pesanan yang sudah selesai tidak dapat dibatalkan', 'error');
+      return;
+    }
+
+    const updatedOrder: MarketplaceOrder = {
+      ...order,
+      orderStatus: 'dibatalkan',
+      cancelReason: cancelReason || 'Dibatalkan oleh konsumen'
+    };
+
+    setMarketplaceOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? updatedOrder : o))
+    );
+
+    try {
+      await setDoc(doc(db, 'orders', orderId), updatedOrder, { merge: true });
+    } catch (e) {
+      console.warn('Firestore cancel order notice:', e);
+    }
+    showToast(`Pesanan #${order.orderNo} berhasil dibatalkan.`, 'info');
+  };
+
+  // --- Home Visit Service Handlers ---
+  const addHomeVisitRequest = async (data: Omit<HomeVisitRequest, 'id' | 'requestNo' | 'createdAt' | 'status'>) => {
+    const id = 'hvr-' + Date.now().toString(36);
+    const requestNo = 'HVR-' + Math.floor(100000 + Math.random() * 900000);
+    const newReq: HomeVisitRequest = {
+      ...data,
+      id,
+      requestNo,
+      status: 'menunggu_konfirmasi',
+      createdAt: new Date().toISOString()
+    };
+    setHomeVisitRequests((prev) => [newReq, ...prev]);
+    try {
+      await setDoc(doc(db, 'home_visits', id), newReq);
+    } catch (e) {
+      console.warn('Firestore home visit notice:', e);
+    }
+    showToast('Permintaan periksa ke rumah terkirim! Menunggu konfirmasi optik.', 'success');
+    return newReq;
+  };
+
+  const updateHomeVisitStatus = async (id: string, status: HomeVisitStatus, staffName?: string) => {
+    const req = homeVisitRequests.find((r) => r.id === id);
+    if (!req) return;
+
+    const updated: HomeVisitRequest = {
+      ...req,
+      status,
+      staffName: staffName || req.staffName,
+      updatedAt: new Date().toISOString()
+    };
+
+    setHomeVisitRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    try {
+      await setDoc(doc(db, 'home_visits', id), updated, { merge: true });
+    } catch (e) {
+      console.warn('Firestore update home visit notice:', e);
+    }
+
+    const statusNotifs: Record<HomeVisitStatus, string> = {
+      menunggu_konfirmasi: 'Menunggu konfirmasi optik',
+      dikonfirmasi: 'Jadwal periksa ke rumah telah dikonfirmasi oleh optik!',
+      sedang_dijalan: 'Petugas optisi sedang di jalan menuju lokasi konsumen!',
+      sudah_sampai: 'Petugas optisi sudah sampai di lokasi rumah konsumen!',
+      selesai: 'Pemeriksaan mata ke rumah telah selesai.',
+      dibatalkan: 'Permintaan periksa ke rumah dibatalkan.'
+    };
+    showToast(statusNotifs[status] || 'Status kunjungan diperbarui', 'info');
+  };
+
+  const cancelHomeVisitRequest = async (id: string, reason?: string) => {
+    const req = homeVisitRequests.find((r) => r.id === id);
+    if (!req) return;
+    const updated: HomeVisitRequest = {
+      ...req,
+      status: 'dibatalkan',
+      cancelReason: reason || 'Dibatalkan oleh pemohon',
+      updatedAt: new Date().toISOString()
+    };
+    setHomeVisitRequests((prev) => prev.map((r) => (r.id === id ? updated : r)));
+    try {
+      await setDoc(doc(db, 'home_visits', id), updated, { merge: true });
+    } catch (e) {
+      console.warn('Firestore cancel home visit notice:', e);
+    }
+    showToast('Permintaan kunjungan berhasil dibatalkan.', 'info');
   };
 
   // --- Other modules handlers ---
@@ -1476,6 +1535,11 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         createMarketplaceOrder,
         confirmPaymentTransfer,
         updateMarketplaceOrderStatus,
+        cancelMarketplaceOrder,
+        homeVisitRequests,
+        addHomeVisitRequest,
+        updateHomeVisitStatus,
+        cancelHomeVisitRequest,
         isOnline,
 
         salesOrders,

@@ -65,11 +65,8 @@ export const MarketplaceModule: React.FC = () => {
   );
 
   // Shipping & Payment Form
-  const [courier, setCourier] = useState<CourierType>('J&T');
-  const [shippingRateType, setShippingRateType] = useState<ShippingRateType>('auto');
-  const [packageWeightGram, setPackageWeightGram] = useState<number>(350);
-  const [packageDimensions, setPackageDimensions] = useState({ length: 18, width: 8, height: 6 });
-  const [manualShippingCost, setManualShippingCost] = useState<number>(15000);
+  const [deliveryMethod, setDeliveryMethod] = useState<'kurir_toko' | 'pickup'>('kurir_toko');
+  const [deliveryFee, setDeliveryFee] = useState<number>(store.localDeliveryFee || 10000);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('QRIS');
   const [appliedCouponCode, setAppliedCouponCode] = useState<string>('');
   const [discountAmount, setDiscountAmount] = useState<number>(0);
@@ -86,27 +83,7 @@ export const MarketplaceModule: React.FC = () => {
   const [lAdd, setLAdd] = useState('');
   const [pd, setPd] = useState('64 mm');
 
-  // Calculate auto shipping cost based on courier & weight/dimension
-  const calculateAutoShippingCost = (c: CourierType, weight: number): number => {
-    const kg = Math.ceil(weight / 1000) || 1;
-    switch (c) {
-      case 'GoSend':
-      case 'GrabExpress':
-        return 22000;
-      case 'SiCepat':
-        return 12000 * kg;
-      case 'JNE':
-        return 11000 * kg;
-      case 'J&T':
-      default:
-        return 10000 * kg;
-    }
-  };
-
-  const calculatedShippingCost =
-    shippingRateType === 'auto'
-      ? calculateAutoShippingCost(courier, packageWeightGram)
-      : manualShippingCost;
+  const calculatedShippingCost = deliveryMethod === 'kurir_toko' ? deliveryFee : 0;
 
   const subtotal = cartProduct ? cartProduct.sellingPrice * quantity : 0;
   const grandTotal = Math.max(0, subtotal - discountAmount + calculatedShippingCost);
@@ -191,10 +168,8 @@ export const MarketplaceModule: React.FC = () => {
       shippingCost: calculatedShippingCost,
       discountAmount,
       totalAmount: grandTotal,
-      courier,
-      shippingRateType,
-      packageWeightGram: shippingRateType === 'auto' ? packageWeightGram : undefined,
-      packageDimensions: shippingRateType === 'auto' ? packageDimensions : undefined,
+      courier: deliveryMethod === 'kurir_toko' ? 'Kurir Toko' : 'Ambil di Toko',
+      shippingRateType: 'manual',
       paymentMethod,
       paymentStatus: paymentMethod === 'COD' ? 'unpaid' : 'paid',
       orderStatus: 'waiting_confirmation'
@@ -667,121 +642,53 @@ export const MarketplaceModule: React.FC = () => {
                 </div>
               </div>
 
-              {/* JASA KIRIM (J&T, JNE, SiCepat, GoSend, Grab) + Tarif Otomatis / Manual */}
+              {/* PENGIRIMAN: KURIR TOKO (WILAYAH SEKITAR) & AMBIL DI TOKO */}
               <div className="p-3.5 rounded-xl bg-slate-800/60 border border-slate-750 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <span className="font-bold text-slate-200 flex items-center gap-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-slate-200 flex items-center gap-1.5 text-xs">
                     <Truck className="w-4 h-4 text-sky-400" />
-                    Pilihan Ekspedisi & Jasa Kirim
+                    Metode Pengiriman (Wilayah Sekitar)
                   </span>
-
-                  {/* Mode: Otomatis vs Manual */}
-                  <div className="flex items-center gap-2 bg-slate-900 p-1 rounded-lg border border-slate-700">
-                    <button
-                      type="button"
-                      onClick={() => setShippingRateType('auto')}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-all ${
-                        shippingRateType === 'auto'
-                          ? 'bg-sky-600 text-white'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Tarif Otomatis (Berat & Dimensi)
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShippingRateType('manual')}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-bold cursor-pointer transition-all ${
-                        shippingRateType === 'manual'
-                          ? 'bg-sky-600 text-white'
-                          : 'text-slate-400 hover:text-white'
-                      }`}
-                    >
-                      Tarif Manual Toko
-                    </button>
-                  </div>
                 </div>
 
-                {/* Courier Selection */}
-                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {(['J&T', 'JNE', 'SiCepat', 'GoSend', 'GrabExpress'] as CourierType[]).map((c) => (
-                    <button
-                      key={c}
-                      type="button"
-                      onClick={() => setCourier(c)}
-                      className={`p-2 rounded-xl border text-center font-bold text-xs transition-all cursor-pointer ${
-                        courier === c
-                          ? 'bg-sky-600/20 border-sky-500 text-white'
-                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
-                      }`}
-                    >
-                      {c}
-                    </button>
-                  ))}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('kurir_toko')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      deliveryMethod === 'kurir_toko'
+                        ? 'bg-sky-600/20 border-sky-500 text-white shadow-xs'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="font-bold text-xs text-white">Kurir Toko (Wilayah Sekitar)</div>
+                    <div className="text-[11px] text-sky-400 mt-1 font-semibold">
+                      Biaya: {formatRupiah(deliveryFee)}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Pengantaran langsung oleh staf kurir toko
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setDeliveryMethod('pickup')}
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                      deliveryMethod === 'pickup'
+                        ? 'bg-sky-600/20 border-sky-500 text-white shadow-xs'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:border-slate-600'
+                    }`}
+                  >
+                    <div className="font-bold text-xs text-white">Ambil Sendiri di Toko</div>
+                    <div className="text-[11px] text-emerald-400 mt-1 font-semibold">Gratis (Rp 0)</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      Ambil pesanan langsung di gerai optik
+                    </div>
+                  </button>
                 </div>
 
-                {/* Sub-form based on rate type */}
-                {shippingRateType === 'auto' ? (
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-700 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px]">
-                    <div>
-                      <label className="text-slate-400 block mb-0.5">Berat Barang (Gram)</label>
-                      <input
-                        type="number"
-                        value={packageWeightGram}
-                        onChange={(e) => setPackageWeightGram(Number(e.target.value))}
-                        className="w-full px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-0.5">Panjang (cm)</label>
-                      <input
-                        type="number"
-                        value={packageDimensions.length}
-                        onChange={(e) =>
-                          setPackageDimensions({ ...packageDimensions, length: Number(e.target.value) })
-                        }
-                        className="w-full px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-0.5">Lebar (cm)</label>
-                      <input
-                        type="number"
-                        value={packageDimensions.width}
-                        onChange={(e) =>
-                          setPackageDimensions({ ...packageDimensions, width: Number(e.target.value) })
-                        }
-                        className="w-full px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white font-mono"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-slate-400 block mb-0.5">Tinggi (cm)</label>
-                      <input
-                        type="number"
-                        value={packageDimensions.height}
-                        onChange={(e) =>
-                          setPackageDimensions({ ...packageDimensions, height: Number(e.target.value) })
-                        }
-                        className="w-full px-2 py-1 rounded bg-slate-800 border border-slate-700 text-white font-mono"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-2.5 rounded-lg bg-slate-900/90 border border-slate-700">
-                    <label className="text-slate-400 block mb-1 text-[11px]">
-                      Ongkos Kirim Manual Toko (Rp)
-                    </label>
-                    <input
-                      type="number"
-                      value={manualShippingCost}
-                      onChange={(e) => setManualShippingCost(Number(e.target.value))}
-                      className="w-full px-3 py-1.5 rounded bg-slate-800 border border-slate-700 text-white font-bold"
-                    />
-                  </div>
-                )}
-
-                <div className="flex justify-between items-center text-xs text-sky-400 font-semibold pt-1">
-                  <span>Ongkir {courier}:</span>
+                <div className="flex justify-between items-center text-xs text-sky-400 font-semibold pt-1 border-t border-slate-700/60">
+                  <span>Ongkos Kirim:</span>
                   <span className="font-bold">{formatRupiah(calculatedShippingCost)}</span>
                 </div>
               </div>
@@ -879,7 +786,7 @@ export const MarketplaceModule: React.FC = () => {
                   <span>{formatRupiah(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-slate-400">
-                  <span>Ongkos Kirim ({courier}):</span>
+                  <span>Ongkos Kirim ({deliveryMethod === 'kurir_toko' ? 'Kurir Toko' : 'Ambil di Toko'}):</span>
                   <span>{formatRupiah(calculatedShippingCost)}</span>
                 </div>
                 {discountAmount > 0 && (

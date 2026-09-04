@@ -16,6 +16,7 @@ import {
   ShieldCheck,
   CreditCard,
   Building2,
+  Truck,
 } from 'lucide-react';
 
 export const SettingsModule: React.FC = () => {
@@ -49,6 +50,7 @@ export const SettingsModule: React.FC = () => {
   const [bankName, setBankName] = useState(store.bankName || 'BCA');
   const [bankAccountNumber, setBankAccountNumber] = useState(store.bankAccountNumber || '');
   const [bankAccountHolder, setBankAccountHolder] = useState(store.bankAccountHolder || '');
+  const [localDeliveryFee, setLocalDeliveryFee] = useState<number>(store.localDeliveryFee ?? 10000);
 
   const palettes: { name: ThemePalette; label: string; colorClass: string }[] = [
     { name: 'Electric Ocean', label: 'Electric Ocean', colorClass: 'bg-sky-500' },
@@ -72,8 +74,9 @@ export const SettingsModule: React.FC = () => {
       bankName,
       bankAccountNumber,
       bankAccountHolder,
+      localDeliveryFee: Number(localDeliveryFee) || 10000
     });
-    showToast('Pengaturan toko & nomor rekening seller berhasil disimpan', 'success');
+    showToast('Pengaturan toko, nomor rekening seller & ongkir kurir toko berhasil disimpan', 'success');
   };
 
   const handleExportJson = () => {
@@ -325,6 +328,32 @@ export const SettingsModule: React.FC = () => {
                 <span className="text-[10px] text-sky-600 dark:text-sky-400 font-bold">Siap Menerima Payout</span>
               </div>
             )}
+          </div>
+
+          {/* Ongkos Kirim Kurir Toko (Pengganti Ekspedisi Luar) */}
+          <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/80 space-y-3 mt-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Truck className="w-4 h-4 text-indigo-500" />
+                <h4 className="font-bold text-xs text-slate-900 dark:text-white uppercase tracking-wider">
+                  Ongkos Kirim Kurir Toko (Pengantaran Wilayah Sekitar)
+                </h4>
+              </div>
+              <span className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
+                Kurir Lokal
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              Pengiriman tidak menggunakan ekspedisi luar (JNE/SiCepat), melainkan diantar langsung oleh staf/kurir toko optik ke rumah konsumen di area sekitar. Tentukan tarif pengantarannya di sini.
+            </p>
+
+            <div className="max-w-xs">
+              <label className="block font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                Tarif Ongkir Kurir Toko (Rp)
+              </label>
+              <CommaNumberInput value={localDeliveryFee} onChange={setLocalDeliveryFee} />
+              <span className="text-[10px] text-slate-400">Default: Rp 10.000 per pengantaran</span>
+            </div>
           </div>
 
           <div className="pt-4 flex justify-end">

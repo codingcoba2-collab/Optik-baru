@@ -19,6 +19,8 @@ import { AdsDiscountModule } from './components/ads/AdsDiscountModule';
 import { MarketplaceModule } from './components/marketplace/MarketplaceModule';
 import { UpdateModule } from './components/update/UpdateModule';
 import { EducationModule } from './components/education/EducationModule';
+import { ConsumerPortal } from './components/consumer/ConsumerPortal';
+import { SellerOrderManagementModule } from './components/orders/SellerOrderManagementModule';
 import {
   LayoutDashboard,
   Glasses,
@@ -56,8 +58,8 @@ const AppContent: React.FC = () => {
   const [activeTab, setActiveTab] = useState<string>(
     isConsumer ? 'marketplace' : 'dashboard'
   );
-  // State for toggling login view on initial unauthenticated screen
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  // State for toggling login view on initial unauthenticated screen (default true for immediate login/register)
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
 
   // Synchronize default tab on role or userProfile change
   useEffect(() => {
@@ -81,10 +83,10 @@ const AppContent: React.FC = () => {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex flex-col font-sans transition-colors duration-200">
         {/* Top Navbar on Initial Landing / Education Screen with Prominent Login Menu */}
-        <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-4 sm:px-8 py-3 transition-colors">
-          <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+        <header className="sticky top-0 z-40 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 sm:px-10 lg:px-12 py-5 pt-8 sm:pt-9 transition-colors">
+          <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
             {/* Logo & Brand Info */}
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/25 shrink-0">
                 <Glasses className="w-5 h-5 stroke-[2.2]" />
               </div>
@@ -159,6 +161,17 @@ const AppContent: React.FC = () => {
     );
   }
 
+  // If user is Consumer: Render ConsumerPortal directly with strict separation from seller controls
+  if (isConsumer) {
+    return (
+      <ErrorBoundary fallbackTitle="Kendala Memuat Halaman Konsumen">
+        <ConsumerPortal />
+        <ToastContainer />
+        <PwaInstallModal isOpen={isPwaModalOpen} onClose={() => setIsPwaModalOpen(false)} />
+      </ErrorBoundary>
+    );
+  }
+
   interface NavigationTabItem {
     id: string;
     label: string;
@@ -166,11 +179,10 @@ const AppContent: React.FC = () => {
     badge?: string;
   }
 
-  // Navigation Items
+  // Navigation Items for Seller / Store Operator
   const sellerNavItems: NavigationTabItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'marketplace', label: 'Marketplace', icon: ShoppingBag, badge: 'Eye Hub' },
-    { id: 'education', label: 'Edukasi Lensa', icon: BookOpen, badge: 'Info' },
+    { id: 'orders', label: 'Pesanan Masuk', icon: ShoppingBag, badge: 'Order' },
     { id: 'inventory', label: 'Stok Lensa & Frame', icon: Glasses },
     { id: 'faset', label: 'Lab Faset', icon: Wrench, badge: 'Optik' },
     { id: 'employee', label: 'Pegawai & Gaji', icon: Users, badge: 'Owner' },
@@ -180,6 +192,7 @@ const AppContent: React.FC = () => {
     { id: 'payroll', label: 'Payroll & Insentif', icon: DollarSign },
     { id: 'attendance', label: 'Presensi', icon: Clock },
     { id: 'ai', label: 'AI Evaluasi', icon: Sparkles },
+    { id: 'education', label: 'Kamus Lensa', icon: BookOpen },
     { id: 'update', label: 'Update PWA', icon: RefreshCw, badge: 'New' },
     { id: 'settings', label: 'Pengaturan & Tema', icon: Settings },
   ];
@@ -200,8 +213,8 @@ const AppContent: React.FC = () => {
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* Primary Navigation Bar (Responsive Sub-Header) */}
-      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,14px))] sm:top-16 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-2 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center gap-1.5 overflow-x-auto py-2 pr-6 sm:pr-2 no-scrollbar scroll-smooth">
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,14px))] sm:top-16 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 px-6 sm:px-8 lg:px-12">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto py-2.5 pr-6 sm:pr-2 no-scrollbar scroll-smooth">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -243,9 +256,7 @@ const AppContent: React.FC = () => {
             </span>
             <span>•</span>
             <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline">
-              {isConsumer
-                ? 'Pesan kacamata langsung dengan sistem COD, Transfer, QRIS dan pengiriman J&T, JNE, SiCepat, GoSend, Grab'
-                : 'Sistem operasional toko optik lengkap: Manajemen Pegawai, Stok Multi-Lensa, Lab Faset, Iklan & Diskon'}
+              Sistem operasional toko optik lengkap: Kelola Pesanan Masuk, Pengantaran Kurir Toko, Lab Faset, Stok Multi-Lensa & Keuangan
             </span>
           </div>
 
@@ -264,6 +275,7 @@ const AppContent: React.FC = () => {
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 pb-24 md:pb-8">
         <ErrorBoundary fallbackTitle="Terjadi Kendala Memuat Modul" onReset={() => setActiveTab(isConsumer ? 'marketplace' : 'dashboard')}>
           {activeTab === 'dashboard' && <DashboardModule onNavigate={setActiveTab} />}
+          {activeTab === 'orders' && <SellerOrderManagementModule />}
           {activeTab === 'education' && <EducationModule onOpenLogin={() => {}} />}
           {activeTab === 'marketplace' && <MarketplaceModule />}
           {activeTab === 'inventory' && <InventoryModule />}

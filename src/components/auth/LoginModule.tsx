@@ -25,7 +25,9 @@ import {
   X,
   ShieldCheck,
   MessageSquare,
-  BookOpen
+  BookOpen,
+  CreditCard,
+  Truck
 } from 'lucide-react';
 
 export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBackToEducation }) => {
@@ -45,21 +47,19 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
   // Target: 'seller' or 'consumer'
   const [userType, setUserType] = useState<UserType>('seller');
 
-  // Form fields prefilled with user requested profile
-  const [storeName, setStoreName] = useState('Optik Jaya Sentosa');
-  const [fullName, setFullName] = useState('Danial Ramdhan');
-  const [username, setUsername] = useState('danialramdhan');
-  const [password, setPassword] = useState('123456');
-  const [phone, setPhone] = useState('0895621670403');
+  // Form fields start blank for strict authentication & privacy
+  const [storeName, setStoreName] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  // OTP Modal State & SMS/WhatsApp simulation
-  const [isOtpModalOpen, setIsOtpModalOpen] = useState(false);
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [inputOtp, setInputOtp] = useState('');
-  const [otpTargetPhone, setOtpTargetPhone] = useState('0895621670403');
-  const [otpCountdown, setOtpCountdown] = useState(60);
-  const [hasSimulatedNotification, setHasSimulatedNotification] = useState(false);
+  // Seller specific initial setup fields
+  const [bankName, setBankName] = useState('BCA');
+  const [bankAccountNumber, setBankAccountNumber] = useState('');
+  const [bankAccountHolder, setBankAccountHolder] = useState('');
+  const [localDeliveryFee, setLocalDeliveryFee] = useState<number>(10000);
 
   // Google Login Modal State
   const [isGoogleModalOpen, setIsGoogleModalOpen] = useState(false);
@@ -145,7 +145,7 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
     setIsLoading(false);
   };
 
-  const handleStartOtpRegister = (e: React.FormEvent) => {
+  const handleDirectRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
 
@@ -161,28 +161,8 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
       setErrorMsg('Nomor HP tidak valid. Masukkan nomor HP aktif (contoh: 081234567890)');
       return;
     }
-
-    // Generate 6 digit OTP
-    const target = phone.trim() || '0895621670403';
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setGeneratedOtp(code);
-    setOtpTargetPhone(target);
-    setIsOtpModalOpen(true);
-    setInputOtp('');
-    setOtpCountdown(60);
-    setHasSimulatedNotification(true);
-    showToast(`Kode OTP verifikasi resmi dikirim dari WhatsApp 0895621670403. Kode: ${code}`, 'success');
-  };
-
-  const handleAutoFillOtp = () => {
-    setInputOtp(generatedOtp);
-    showToast('Kode OTP berhasil ditempel otomatis!', 'info');
-  };
-
-  const handleVerifyOtpAndComplete = async () => {
-    if (inputOtp.trim() !== generatedOtp) {
-      setErrorMsg('Kode OTP yang Anda masukkan salah.');
-      showToast('Kode OTP tidak sesuai!', 'error');
+    if (!password.trim() || password.length < 4) {
+      setErrorMsg('Password minimal 4 karakter');
       return;
     }
 
@@ -190,17 +170,20 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
     const res = await registerUser({
       username: username.trim(),
       fullName: fullName.trim() || username.trim(),
-      password: password || '123456',
-      phone: otpTargetPhone,
+      password: password.trim(),
+      phone: phone.trim(),
       userType,
       storeName: userType === 'seller' ? storeName.trim() : undefined,
-      role: userType === 'seller' ? 'owner' : undefined
+      role: userType === 'seller' ? 'owner' : undefined,
+      bankName: userType === 'seller' ? bankName : undefined,
+      bankAccountNumber: userType === 'seller' ? bankAccountNumber : undefined,
+      bankAccountHolder: userType === 'seller' ? bankAccountHolder || fullName.trim() : undefined,
+      localDeliveryFee: userType === 'seller' ? Number(localDeliveryFee) || 10000 : undefined
     });
 
     setIsLoading(false);
     if (res.success) {
-      setIsOtpModalOpen(false);
-      showToast('Nomor HP berhasil diverifikasi dan akun aktif!', 'success');
+      showToast('Pendaftaran akun berhasil! Silakan masuk dengan akun Anda.', 'success');
     } else {
       setErrorMsg(res.message || 'Gagal mendaftar.');
     }
@@ -245,13 +228,13 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
   };
 
   return (
-    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between p-3 sm:p-6 lg:p-8 pt-[max(env(safe-area-inset-top,22px),22px)] relative overflow-x-hidden">
+    <div className="min-h-screen w-full bg-slate-950 text-slate-100 flex flex-col justify-between px-8 sm:px-14 lg:px-20 pt-16 sm:pt-20 pb-14 relative overflow-x-hidden">
       {/* Background Decorative Lighting */}
       <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-sky-600/15 blur-3xl pointer-events-none" />
       <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-indigo-600/15 blur-3xl pointer-events-none" />
 
       {/* Top Bar: Brand, Update Feature & Theme Toggle */}
-      <div className="max-w-6xl w-full mx-auto flex items-center justify-between gap-2 z-10">
+      <div className="max-w-5xl w-full mx-auto flex items-center justify-between gap-4 z-10 px-4 sm:px-6 mb-8 sm:mb-10">
         <div className="flex items-center gap-2 sm:gap-2.5">
           <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-lg shadow-sky-500/20 shrink-0">
             <Glasses className="w-5 h-5 stroke-[2.2]" />
@@ -437,8 +420,8 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
               </button>
             </form>
           ) : (
-            // Register with Phone & OTP or form
-            <form onSubmit={handleStartOtpRegister} className="space-y-3.5">
+            // Direct standard registration (no OTP)
+            <form onSubmit={handleDirectRegister} className="space-y-3.5">
               {userType === 'seller' && (
                 <div>
                   <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -491,7 +474,7 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
-                  Nomor HP (Verifikasi OTP)
+                  Nomor HP / WhatsApp
                 </label>
                 <div className="relative">
                   <Phone className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -504,8 +487,52 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
                     className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-sky-500"
                   />
                 </div>
-                <span className="text-[10px] text-slate-400">Kode OTP akan dikirimkan ke nomor ini</span>
               </div>
+
+              {userType === 'seller' && (
+                <div className="p-3 rounded-xl bg-slate-800/50 border border-slate-700/60 space-y-2.5">
+                  <div className="text-[11px] font-bold text-sky-400 flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5" />
+                    <span>Rekening Penampung Penjualan & Tarif Kurir Toko</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-0.5">Nama Bank</label>
+                      <select
+                        value={bankName}
+                        onChange={(e) => setBankName(e.target.value)}
+                        className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white"
+                      >
+                        <option value="BCA">BCA</option>
+                        <option value="Mandiri">Mandiri</option>
+                        <option value="BRI">BRI</option>
+                        <option value="BNI">BNI</option>
+                        <option value="BSI">BSI</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-0.5">Nomor Rekening</label>
+                      <input
+                        type="text"
+                        value={bankAccountNumber}
+                        onChange={(e) => setBankAccountNumber(e.target.value)}
+                        placeholder="Contoh: 8820192831"
+                        className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Tarif Ongkir Kurir Toko (Rp)</label>
+                    <input
+                      type="number"
+                      value={localDeliveryFee}
+                      onChange={(e) => setLocalDeliveryFee(Number(e.target.value) || 0)}
+                      placeholder="10000"
+                      className="w-full px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-white font-mono"
+                    />
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-xs font-bold text-slate-300 mb-1">
@@ -518,13 +545,13 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Minimal 6 karakter"
+                    placeholder="Minimal 4 karakter"
                     className="w-full pl-9 pr-10 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-hidden focus:border-sky-500"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -536,8 +563,14 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
                 disabled={isLoading}
                 className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg shadow-emerald-600/30 flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-50"
               >
-                <span>Kirim Kode OTP & Lanjutkan</span>
-                <ArrowRight className="w-4 h-4" />
+                {isLoading ? (
+                  <span>Mendaftarkan...</span>
+                ) : (
+                  <>
+                    <span>Daftar Akun {userType === 'seller' ? 'Seller Optik' : 'Konsumen'}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
               </button>
             </form>
           )}
@@ -632,107 +665,6 @@ export const LoginModule: React.FC<{ onBackToEducation?: () => void }> = ({ onBa
           </div>
         </div>
       </div>
-
-      {/* OTP Verification Modal with WhatsApp Gateway 0895621670403 */}
-      {isOtpModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <div className="text-center">
-              <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-2 shadow-sm">
-                <Smartphone className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-white">Verifikasi OTP WhatsApp</h3>
-              <p className="text-xs text-slate-400 mt-1">
-                Pesan OTP resmi otomatis dikirimkan ke akun WhatsApp Anda.
-              </p>
-              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold mt-2">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Pengirim Resmi: WhatsApp 0895621670403</span>
-              </div>
-            </div>
-
-            {/* Realistic WhatsApp Notification Bubble */}
-            <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                  <span>Pesan Masuk WhatsApp Gateway</span>
-                </div>
-                <span className="text-[10px] text-slate-400 font-mono">Baru saja</span>
-              </div>
-              <div className="p-3 rounded-lg bg-slate-900/90 border border-slate-800 text-slate-200 leading-relaxed font-sans space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] pb-1 border-b border-slate-800">
-                  <span className="text-slate-400">Dari WhatsApp:</span>
-                  <span className="text-emerald-400 font-mono font-bold">0895621670403 (Optik)</span>
-                </div>
-                <p className="text-xs text-slate-300">
-                  "Halo, kode verifikasi OTP akun <span className="font-bold text-white">eye hub Optics</span> Anda adalah:
-                </p>
-                <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-center">
-                  <span className="font-mono font-black text-emerald-400 text-lg tracking-[0.25em]">
-                    {generatedOtp}
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-400 italic">
-                  *Demi keamanan, jangan bagikan kode ini kepada pihak mana pun.
-                </p>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={handleAutoFillOtp}
-                  className="flex-1 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors shadow-md shadow-emerald-600/30"
-                >
-                  <Check className="w-3.5 h-3.5" />
-                  <span>Tempel Kode Otomatis ({generatedOtp})</span>
-                </button>
-                <a
-                  href={`https://wa.me/62895621670403?text=Halo%20Admin%20Optik,%20saya%20meminta%20kode%20OTP%20pendaftaran%20eye%20hub:%20${generatedOtp}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="py-2 px-3 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold flex items-center justify-center gap-1 transition-colors text-center"
-                >
-                  <MessageSquare className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Cek WhatsApp</span>
-                </a>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1">
-                Masukkan Kode OTP 6-Digit
-              </label>
-              <input
-                type="text"
-                maxLength={6}
-                value={inputOtp}
-                onChange={(e) => setInputOtp(e.target.value.replace(/\D/g, ''))}
-                placeholder="123456"
-                className="w-full text-center tracking-[0.4em] font-mono text-xl font-bold py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-white focus:outline-hidden focus:border-emerald-500"
-              />
-            </div>
-
-            <div className="flex gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setIsOtpModalOpen(false)}
-                className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                type="button"
-                onClick={handleVerifyOtpAndComplete}
-                disabled={inputOtp.length !== 6 || isLoading}
-                className="flex-1 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold disabled:opacity-50 cursor-pointer shadow-md shadow-emerald-600/30"
-              >
-                {isLoading ? 'Memverifikasi...' : 'Verifikasi & Masuk'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Google Account Selector Modal */}
       {isGoogleModalOpen && (

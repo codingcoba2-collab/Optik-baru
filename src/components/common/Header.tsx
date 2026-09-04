@@ -108,9 +108,9 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <>
-      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors pt-[max(env(safe-area-inset-top,16px),16px)] sm:pt-2.5 pb-2">
-        <div className="max-w-7xl mx-auto px-2.5 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between min-h-14 gap-1.5 sm:gap-4">
+      <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800 transition-colors pt-6 sm:pt-8 pb-3.5 shadow-xs">
+        <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+          <div className="flex items-center justify-between min-h-14 gap-2 sm:gap-4">
             {/* Brand Logo & Name */}
             <div className="flex items-center gap-2 sm:gap-3 shrink-0">
               <div

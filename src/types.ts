@@ -26,6 +26,10 @@ export interface UserAccount {
   role?: Role;
   roles?: Role[];
   address?: string;
+  bankName?: string;
+  bankAccountNumber?: string;
+  bankAccountHolder?: string;
+  localDeliveryFee?: number;
   createdAt: string;
 }
 
@@ -156,8 +160,12 @@ export interface OpticalProduct {
 
   // Media Produk (Foto & Video Etalase)
   imageUrl?: string;
+  image?: string;
   videoUrl?: string;
   mediaType?: 'image' | 'video' | 'both';
+  brand?: string;
+  originalPrice?: number;
+  sellPrice?: number;
 
   // Marketplace & Iklan
   isMarketplaceListed?: boolean;
@@ -167,6 +175,8 @@ export interface OpticalProduct {
   isAdActive?: boolean;
   createdAt?: string;
 }
+
+export type Product = OpticalProduct;
 
 export type CashflowEntry = CashflowRecord;
 export type AdSpendEntry = AdSpendRecord;
@@ -257,11 +267,18 @@ export interface MarketplaceOrderItem {
   qty: number;
   quantity?: number;
   price: number;
-  selectedCategories?: LensCategoryType[];
+  image?: string;
+  imageUrl?: string;
+  storeId?: string;
+  storeName?: string;
+  selectedCategories?: (LensCategoryType | string)[];
+  lensCategories?: (LensCategoryType | string)[];
   prescription?: {
-    od: EyePrescription;
-    os: EyePrescription;
-    pd: string;
+    od?: EyePrescription;
+    os?: EyePrescription;
+    pd?: string;
+    rightEye?: EyePrescription;
+    leftEye?: EyePrescription;
   };
 }
 
@@ -287,10 +304,52 @@ export interface MarketplaceOrder {
   selectedBank?: 'BCA' | 'Mandiri' | 'BRI' | 'BNI' | 'Permata' | 'CIMB Niaga' | 'BSI';
   vaNumber?: string;
   paymentStatus: 'menunggu_pembayaran' | 'terverifikasi' | 'paid' | string;
-  orderStatus: 'menunggu_pembayaran' | 'diproses' | 'faset' | 'dikirim' | 'selesai' | 'dibatalkan' | 'waiting_confirmation' | 'in_lab' | 'shipped' | string;
+  orderStatus: 
+    | 'menunggu_konfirmasi' 
+    | 'sedang_difaset' 
+    | 'sedang_diantar' 
+    | 'selesai' 
+    | 'dibatalkan' 
+    | 'waiting_confirmation' 
+    | 'diproses' 
+    | 'faset' 
+    | 'in_lab' 
+    | 'dikirim' 
+    | 'shipped' 
+    | string;
   createdAt: string;
   paidAt?: string;
   transferProofUrl?: string;
+  completedAt?: string;
+  cancelReason?: string;
+}
+
+export type HomeVisitStatus =
+  | 'menunggu_konfirmasi'
+  | 'dikonfirmasi'
+  | 'sedang_dijalan'
+  | 'sudah_sampai'
+  | 'selesai'
+  | 'dibatalkan';
+
+export interface HomeVisitRequest {
+  id: string;
+  requestNo: string;
+  storeId: string;
+  storeName: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  address: string;
+  preferredDate: string;
+  preferredTime: string;
+  complaint?: string;
+  notes?: string;
+  status: HomeVisitStatus;
+  createdAt: string;
+  updatedAt?: string;
+  staffName?: string;
+  cancelReason?: string;
 }
 
 export type SalesChannel = 
@@ -413,6 +472,8 @@ export interface StoreAccount {
   bankName?: string; // e.g. 'BCA', 'Mandiri', 'BRI', 'BNI', 'BSI'
   bankAccountNumber?: string; // e.g. '8820192831'
   bankAccountHolder?: string; // e.g. 'Optik Mitra Jaya'
+  // Pengiriman Lokal Sekitar Toko (Nominal ditentukan seller)
+  localDeliveryFee?: number; // Biaya pengantaran kurir toko wilayah sekitar (default e.g. Rp 10.000)
 }
 
 export type ShiftType = 
